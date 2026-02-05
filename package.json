@@ -1,0 +1,16 @@
+{
+  "name": "pako-restaurant-hub",
+  "version": "1.0.0",
+  "description": "Pako Business - Restaurant order management hub",
+  "main": "hub.js",
+  "scripts": {
+    "launch": "node hub.js",
+    "serve": "node hub.js"
+  },
+  "keywords": ["pako", "dining", "order-hub"],
+  "author": "Yasin Güneş",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}
