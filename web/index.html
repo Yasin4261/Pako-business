@@ -252,15 +252,36 @@
             items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'menu-card';
-                card.innerHTML = `
-                    <h3>${item.title}</h3>
-                    <div class="price">$${item.cost.toFixed(2)}</div>
-                    <div class="quantity-controls">
-                        <button onclick="updateQuantity('${item.identifier}', -1)">-</button>
-                        <span id="qty-${item.identifier}">0</span>
-                        <button onclick="updateQuantity('${item.identifier}', 1)">+</button>
-                    </div>
-                `;
+                
+                const title = document.createElement('h3');
+                title.textContent = item.title;
+                
+                const price = document.createElement('div');
+                price.className = 'price';
+                price.textContent = `$${item.cost.toFixed(2)}`;
+                
+                const controls = document.createElement('div');
+                controls.className = 'quantity-controls';
+                
+                const minusBtn = document.createElement('button');
+                minusBtn.textContent = '-';
+                minusBtn.onclick = () => updateQuantity(item.identifier, -1);
+                
+                const qtySpan = document.createElement('span');
+                qtySpan.id = `qty-${item.identifier}`;
+                qtySpan.textContent = '0';
+                
+                const plusBtn = document.createElement('button');
+                plusBtn.textContent = '+';
+                plusBtn.onclick = () => updateQuantity(item.identifier, 1);
+                
+                controls.appendChild(minusBtn);
+                controls.appendChild(qtySpan);
+                controls.appendChild(plusBtn);
+                
+                card.appendChild(title);
+                card.appendChild(price);
+                card.appendChild(controls);
                 grid.appendChild(card);
             });
         }
@@ -287,24 +308,34 @@
                 return;
             }
             
-            const response = await fetch('/api/catalog');
-            const data = await response.json();
-            
-            let summaryHTML = '';
-            let total = 0;
-            
-            selectedItems.forEach((qty, itemId) => {
-                const item = data.items.find(i => i.identifier === itemId);
-                if (item) {
-                    const subtotal = item.cost * qty;
-                    total += subtotal;
-                    summaryHTML += `<div>${item.title} x${qty} = $${subtotal.toFixed(2)}</div>`;
+            try {
+                const response = await fetch('/api/catalog');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch catalog');
                 }
-            });
-            
-            document.getElementById('summaryItems').innerHTML = summaryHTML;
-            document.getElementById('totalAmount').textContent = total.toFixed(2);
-            document.getElementById('orderSummary').style.display = 'block';
+                const data = await response.json();
+                
+                const summaryContainer = document.getElementById('summaryItems');
+                summaryContainer.innerHTML = '';
+                let total = 0;
+                
+                selectedItems.forEach((qty, itemId) => {
+                    const item = data.items.find(i => i.identifier === itemId);
+                    if (item) {
+                        const subtotal = item.cost * qty;
+                        total += subtotal;
+                        
+                        const itemDiv = document.createElement('div');
+                        itemDiv.textContent = `${item.title} x${qty} = $${subtotal.toFixed(2)}`;
+                        summaryContainer.appendChild(itemDiv);
+                    }
+                });
+                
+                document.getElementById('totalAmount').textContent = total.toFixed(2);
+                document.getElementById('orderSummary').style.display = 'block';
+            } catch (error) {
+                console.error('Failed to update summary:', error);
+            }
         }
         
         async function submitNewOrder() {
@@ -375,13 +406,16 @@
         async function loadRecentOrders() {
             try {
                 const response = await fetch('/api/orders');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch orders');
+                }
                 const data = await response.json();
                 
                 if (data.success) {
                     displayOrders(data.orders);
                 }
             } catch (error) {
-                console.error('Failed to load orders');
+                console.error('Failed to load orders:', error);
             }
         }
         
@@ -389,20 +423,56 @@
             const container = document.getElementById('ordersList');
             
             if (orders.length === 0) {
-                container.innerHTML = '<p>No orders yet</p>';
+                container.textContent = 'No orders yet';
                 return;
             }
             
-            container.innerHTML = orders.reverse().map(order => `
-                <div class="order-card">
-                    <h4>Order ${order.orderIdentifier}</h4>
-                    <span class="order-status status-${order.orderStatus}">${order.orderStatus.toUpperCase()}</span>
-                    <p><strong>Restaurant:</strong> ${order.restaurantName}</p>
-                    <p><strong>Items:</strong> ${order.orderedItems.map(i => `${i.title} (x${i.quantity})`).join(', ')}</p>
-                    <p><strong>Total:</strong> $${order.totalAmount.toFixed(2)}</p>
-                    <p><strong>Created:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-                </div>
-            `).join('');
+            container.innerHTML = '';
+            orders.reverse().forEach(order => {
+                const orderCard = document.createElement('div');
+                orderCard.className = 'order-card';
+                
+                const title = document.createElement('h4');
+                title.textContent = `Order ${order.orderIdentifier}`;
+                
+                const status = document.createElement('span');
+                status.className = `order-status status-${order.orderStatus}`;
+                status.textContent = order.orderStatus.toUpperCase();
+                
+                const restaurantP = document.createElement('p');
+                const restaurantStrong = document.createElement('strong');
+                restaurantStrong.textContent = 'Restaurant: ';
+                restaurantP.appendChild(restaurantStrong);
+                restaurantP.appendChild(document.createTextNode(order.restaurantName));
+                
+                const itemsP = document.createElement('p');
+                const itemsStrong = document.createElement('strong');
+                itemsStrong.textContent = 'Items: ';
+                itemsP.appendChild(itemsStrong);
+                const itemsText = order.orderedItems.map(i => `${i.title} (x${i.quantity})`).join(', ');
+                itemsP.appendChild(document.createTextNode(itemsText));
+                
+                const totalP = document.createElement('p');
+                const totalStrong = document.createElement('strong');
+                totalStrong.textContent = 'Total: ';
+                totalP.appendChild(totalStrong);
+                totalP.appendChild(document.createTextNode(`$${order.totalAmount.toFixed(2)}`));
+                
+                const createdP = document.createElement('p');
+                const createdStrong = document.createElement('strong');
+                createdStrong.textContent = 'Created: ';
+                createdP.appendChild(createdStrong);
+                createdP.appendChild(document.createTextNode(new Date(order.createdAt).toLocaleString()));
+                
+                orderCard.appendChild(title);
+                orderCard.appendChild(status);
+                orderCard.appendChild(restaurantP);
+                orderCard.appendChild(itemsP);
+                orderCard.appendChild(totalP);
+                orderCard.appendChild(createdP);
+                
+                container.appendChild(orderCard);
+            });
         }
         
         function showMessage(text, type) {
@@ -419,7 +489,30 @@
         // Initialize
         loadMenuCatalog();
         loadRecentOrders();
-        setInterval(loadRecentOrders, 10000);
+        
+        // Poll for order updates with visibility check
+        let pollInterval = 10000;
+        let pollTimer;
+        
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(() => {
+                if (!document.hidden) {
+                    loadRecentOrders();
+                }
+            }, pollInterval);
+        }
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (pollTimer) clearInterval(pollTimer);
+            } else {
+                loadRecentOrders();
+                startPolling();
+            }
+        });
+        
+        startPolling();
     </script>
 </body>
 </html>

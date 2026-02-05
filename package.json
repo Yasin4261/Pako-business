@@ -4,8 +4,7 @@
   "description": "Pako Business - Restaurant order management hub",
   "main": "hub.js",
   "scripts": {
-    "launch": "node hub.js",
-    "serve": "node hub.js"
+    "start": "node hub.js"
   },
   "keywords": ["pako", "dining", "order-hub"],
   "author": "Yasin Güneş",
