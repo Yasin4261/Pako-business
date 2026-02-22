@@ -20,20 +20,20 @@ function closeSidebar() {
 }
 
 const categories = [
-  { id: 'all', label: 'All Items', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-  { id: 'burgers', label: 'Burgers', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-  { id: 'pizza', label: 'Pizza', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { id: 'drinks', label: 'Drinks', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { id: 'desserts', label: 'Desserts', icon: 'M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z' }
+  { id: 'all', label: 'Tüm Ürünler', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+  { id: 'burgers', label: 'Burgerler', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+  { id: 'pizza', label: 'Pizzalar', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { id: 'drinks', label: 'İçecekler', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { id: 'desserts', label: 'Tatlılar', icon: 'M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z' }
 ]
 
 // Demo menu items - will be replaced with API data
 const menuItems = ref([
   {
     id: 1,
-    name: 'Classic Burger',
-    description: 'Juicy beef patty with lettuce, tomato, and special sauce',
-    price: 12.99,
+    name: 'Klasik Burger',
+    description: 'Lezzetli dana burger patty, marul, domates ve özel soslu',
+    price: 129.99,
     category: 'burgers',
     image: '🍔',
     available: true,
@@ -41,9 +41,9 @@ const menuItems = ref([
   },
   {
     id: 2,
-    name: 'Cheese Burger',
-    description: 'Classic burger with melted cheddar cheese',
-    price: 14.99,
+    name: 'Cheeseburger',
+    description: 'Klasik burger eritilmiş cheddar peyniri ile',
+    price: 149.99,
     category: 'burgers',
     image: '🍔',
     available: true,
@@ -52,8 +52,8 @@ const menuItems = ref([
   {
     id: 3,
     name: 'Margherita Pizza',
-    description: 'Fresh tomatoes, mozzarella, and basil',
-    price: 16.99,
+    description: 'Taze domates, mozzarella ve fesleğen',
+    price: 169.99,
     category: 'pizza',
     image: '🍕',
     available: true,
@@ -61,9 +61,9 @@ const menuItems = ref([
   },
   {
     id: 4,
-    name: 'Pepperoni Pizza',
-    description: 'Loaded with pepperoni and extra cheese',
-    price: 18.99,
+    name: 'Sucuklu Pizza',
+    description: 'Bol sucuk ve ekstra peynir',
+    price: 189.99,
     category: 'pizza',
     image: '🍕',
     available: true,
@@ -72,8 +72,8 @@ const menuItems = ref([
   {
     id: 5,
     name: 'Coca Cola',
-    description: 'Refreshing cola drink, 330ml',
-    price: 2.99,
+    description: 'Serinletici kola içeceği, 330ml',
+    price: 29.99,
     category: 'drinks',
     image: '🥤',
     available: true,
@@ -81,9 +81,9 @@ const menuItems = ref([
   },
   {
     id: 6,
-    name: 'Fresh Lemonade',
-    description: 'Homemade lemonade with mint',
-    price: 4.99,
+    name: 'Taze Limonata',
+    description: 'Ev yapımı nane limonata',
+    price: 49.99,
     category: 'drinks',
     image: '🍋',
     available: false,
@@ -91,9 +91,9 @@ const menuItems = ref([
   },
   {
     id: 7,
-    name: 'Chocolate Cake',
-    description: 'Rich chocolate cake with cream',
-    price: 8.99,
+    name: 'Çikolatalı Pasta',
+    description: 'Kremalı zengin çikolatalı pasta',
+    price: 89.99,
     category: 'desserts',
     image: '🍰',
     available: true,
@@ -101,9 +101,9 @@ const menuItems = ref([
   },
   {
     id: 8,
-    name: 'Ice Cream Sundae',
-    description: 'Vanilla ice cream with chocolate sauce',
-    price: 6.99,
+    name: 'Dondurma Sundae',
+    description: 'Çikolata soslu vanilyalı dondurma',
+    price: 69.99,
     category: 'desserts',
     image: '🍨',
     available: true,
@@ -154,8 +154,8 @@ function handleDelete(item) {
           <!-- Page Header -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Menu</h1>
-              <p class="text-sm sm:text-base text-gray-500 mt-1">Manage your restaurant menu items</p>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Menü</h1>
+              <p class="text-sm sm:text-base text-gray-500 mt-1">Restoran menü ürünlerinizi yönetin</p>
             </div>
             <button
               @click="isAddModalOpen = true"
@@ -164,7 +164,7 @@ function handleDelete(item) {
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
-              <span>Add Item</span>
+              <span>Ürün Ekle</span>
             </button>
           </div>
 
@@ -178,7 +178,7 @@ function handleDelete(item) {
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search menu items..."
+                placeholder="Menü ürünlerinde ara..."
                 class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm sm:text-base"
               />
             </div>
@@ -223,7 +223,7 @@ function handleDelete(item) {
                   v-if="item.popular"
                   class="absolute top-3 left-3 px-2 py-1 bg-orange-500 text-white text-xs font-medium rounded-full"
                 >
-                  Popular
+                  Popüler
                 </span>
 
                 <!-- Availability Toggle -->
@@ -247,7 +247,7 @@ function handleDelete(item) {
               <div class="p-4">
                 <div class="flex items-start justify-between mb-2">
                   <h3 class="font-semibold text-gray-900">{{ item.name }}</h3>
-                  <span class="text-lg font-bold text-blue-600">${{ item.price.toFixed(2) }}</span>
+                  <span class="text-lg font-bold text-blue-600">₺{{ item.price.toFixed(2) }}</span>
                 </div>
                 <p class="text-sm text-gray-500 mb-4 line-clamp-2">{{ item.description }}</p>
 
@@ -257,7 +257,7 @@ function handleDelete(item) {
                     @click="handleEdit(item)"
                     class="flex-1 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Edit
+                    Düzenle
                   </button>
                   <button
                     @click="handleDelete(item)"
@@ -277,8 +277,8 @@ function handleDelete(item) {
             <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
               🍽️
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No menu items found</h3>
-            <p class="text-gray-500 text-sm sm:text-base mb-4">Add your first menu item to get started</p>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Menü ürünü bulunamadı</h3>
+            <p class="text-gray-500 text-sm sm:text-base mb-4">Başlamak için ilk menü ürününüzü ekleyin</p>
             <button
               @click="isAddModalOpen = true"
               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-shadow"
@@ -286,7 +286,7 @@ function handleDelete(item) {
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
-              Add Item
+              Ürün Ekle
             </button>
           </div>
         </div>

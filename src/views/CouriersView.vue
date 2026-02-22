@@ -19,24 +19,24 @@ function closeSidebar() {
 }
 
 const tabs = [
-  { id: 'all', label: 'All Couriers', count: 12 },
-  { id: 'available', label: 'Available', count: 5 },
-  { id: 'busy', label: 'On Delivery', count: 6 },
-  { id: 'offline', label: 'Offline', count: 1 }
+  { id: 'all', label: 'Tüm Kuryeler', count: 12 },
+  { id: 'available', label: 'Uygun', count: 5 },
+  { id: 'busy', label: 'Teslimat\'ta', count: 6 },
+  { id: 'offline', label: 'Çevrimdışı', count: 1 }
 ]
 
 // Demo couriers data - will be replaced with API data
 const couriers = ref([
   {
     id: 1,
-    name: 'Ali Yilmaz',
+    name: 'Ali Yılmaz',
     phone: '+90 555 123 4567',
     status: 'available',
     avatar: 'A',
     rating: 4.8,
     completedToday: 8,
     totalDeliveries: 245,
-    vehicle: 'Motorcycle',
+    vehicle: 'Motosiklet',
     currentOrder: null
   },
   {
@@ -48,43 +48,43 @@ const couriers = ref([
     rating: 4.9,
     completedToday: 12,
     totalDeliveries: 380,
-    vehicle: 'Bicycle',
+    vehicle: 'Bisiklet',
     currentOrder: '#1040'
   },
   {
     id: 3,
-    name: 'Ayse Kaya',
+    name: 'Ayşe Kaya',
     phone: '+90 555 345 6789',
     status: 'available',
     avatar: 'A',
     rating: 4.7,
     completedToday: 6,
     totalDeliveries: 189,
-    vehicle: 'Motorcycle',
+    vehicle: 'Motosiklet',
     currentOrder: null
   },
   {
     id: 4,
-    name: 'Fatma Ozturk',
+    name: 'Fatma Öztürk',
     phone: '+90 555 456 7890',
     status: 'busy',
     avatar: 'F',
     rating: 4.6,
     completedToday: 10,
     totalDeliveries: 312,
-    vehicle: 'Car',
+    vehicle: 'Araba',
     currentOrder: '#1039'
   },
   {
     id: 5,
-    name: 'Hasan Celik',
+    name: 'Hasan Çelik',
     phone: '+90 555 567 8901',
     status: 'offline',
     avatar: 'H',
     rating: 4.5,
     completedToday: 0,
     totalDeliveries: 156,
-    vehicle: 'Motorcycle',
+    vehicle: 'Motosiklet',
     currentOrder: null
   },
   {
@@ -96,7 +96,7 @@ const couriers = ref([
     rating: 4.9,
     completedToday: 9,
     totalDeliveries: 420,
-    vehicle: 'Bicycle',
+    vehicle: 'Bisiklet',
     currentOrder: null
   }
 ])
@@ -121,19 +121,19 @@ const filteredCouriers = computed(() => {
 
 const statusConfig = {
   available: {
-    label: 'Available',
+    label: 'Uygun',
     bg: 'bg-green-100',
     text: 'text-green-700',
     dot: 'bg-green-500'
   },
   busy: {
-    label: 'On Delivery',
+    label: 'Teslimat\'ta',
     bg: 'bg-orange-100',
     text: 'text-orange-700',
     dot: 'bg-orange-500 animate-pulse'
   },
   offline: {
-    label: 'Offline',
+    label: 'Çevrimdışı',
     bg: 'bg-gray-100',
     text: 'text-gray-700',
     dot: 'bg-gray-400'
@@ -169,14 +169,14 @@ function handleCall(courier) {
           <!-- Page Header -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Couriers</h1>
-              <p class="text-sm sm:text-base text-gray-500 mt-1">Manage your delivery team</p>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Kuryeler</h1>
+              <p class="text-sm sm:text-base text-gray-500 mt-1">Teslimat ekibinizi yönetin</p>
             </div>
             <button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all min-h-[44px]">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
               </svg>
-              <span>Add Courier</span>
+              <span>Kurye Ekle</span>
             </button>
           </div>
 
@@ -190,7 +190,7 @@ function handleCall(courier) {
                 <input
                   v-model="searchQuery"
                   type="text"
-                  placeholder="Search couriers by name or phone..."
+                  placeholder="İsim veya telefon ile kurye ara..."
                   class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm sm:text-base"
                 />
               </div>
@@ -262,16 +262,16 @@ function handleCall(courier) {
                     <svg class="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    Rating
+                    Puan
                   </div>
                 </div>
                 <div class="text-center">
                   <div class="text-lg font-bold text-gray-900">{{ courier.completedToday }}</div>
-                  <div class="text-xs text-gray-500">Today</div>
+                  <div class="text-xs text-gray-500">Bugün</div>
                 </div>
                 <div class="text-center">
                   <div class="text-lg font-bold text-gray-900">{{ courier.totalDeliveries }}</div>
-                  <div class="text-xs text-gray-500">Total</div>
+                  <div class="text-xs text-gray-500">Toplam</div>
                 </div>
               </div>
 
@@ -281,7 +281,7 @@ function handleCall(courier) {
                   <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span class="text-orange-700">Delivering order <strong>{{ courier.currentOrder }}</strong></span>
+                  <span class="text-orange-700">Sipariş <strong>{{ courier.currentOrder }}</strong> teslim ediliyor</span>
                 </div>
               </div>
 
@@ -294,21 +294,21 @@ function handleCall(courier) {
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  Call
+                  Ara
                 </button>
                 <button
                   v-if="courier.status === 'available'"
                   @click="handleAssign(courier)"
                   class="flex-1 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:shadow-lg transition-shadow"
                 >
-                  Assign Order
+                  Sipariş Ata
                 </button>
                 <button
                   v-else
                   @click="handleViewProfile(courier)"
                   class="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  View Profile
+                  Profili Gör
                 </button>
               </div>
             </div>
@@ -321,8 +321,8 @@ function handleCall(courier) {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No couriers found</h3>
-            <p class="text-gray-500 text-sm sm:text-base">Try adjusting your search criteria</p>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Kurye bulunamadı</h3>
+            <p class="text-gray-500 text-sm sm:text-base">Arama kriterlerinizi değiştirmeyi deneyin</p>
           </div>
         </div>
       </main>

@@ -19,38 +19,38 @@ function closeSidebar() {
 }
 
 const periods = [
-  { id: 'today', label: 'Today' },
-  { id: 'week', label: 'This Week' },
-  { id: 'month', label: 'This Month' },
-  { id: 'year', label: 'This Year' }
+  { id: 'today', label: 'Bugün' },
+  { id: 'week', label: 'Bu Hafta' },
+  { id: 'month', label: 'Bu Ay' },
+  { id: 'year', label: 'Bu Yıl' }
 ]
 
 // Demo stats
 const stats = [
   {
-    title: 'Total Revenue',
-    value: '$12,458',
+    title: 'Toplam Gelir',
+    value: '₺84.580',
     icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
     trend: 12,
     color: 'green'
   },
   {
-    title: 'Total Orders',
+    title: 'Toplam Sipariş',
     value: '486',
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
     trend: 8,
     color: 'blue'
   },
   {
-    title: 'Avg. Order Value',
-    value: '$25.64',
+    title: 'Ort. Sipariş Tutarı',
+    value: '₺174',
     icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
     trend: 5,
     color: 'purple'
   },
   {
-    title: 'Delivery Time',
-    value: '28 min',
+    title: 'Teslimat Süresi',
+    value: '28 dk',
     icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
     trend: -3,
     color: 'orange'
@@ -59,32 +59,32 @@ const stats = [
 
 // Demo chart data
 const revenueByDay = [
-  { day: 'Mon', value: 1200 },
-  { day: 'Tue', value: 1800 },
-  { day: 'Wed', value: 1400 },
-  { day: 'Thu', value: 2200 },
-  { day: 'Fri', value: 2800 },
-  { day: 'Sat', value: 3200 },
-  { day: 'Sun', value: 2400 }
+  { day: 'Pzt', value: 8200 },
+  { day: 'Sal', value: 12800 },
+  { day: 'Çar', value: 9400 },
+  { day: 'Per', value: 15200 },
+  { day: 'Cum', value: 18800 },
+  { day: 'Cmt', value: 22400 },
+  { day: 'Paz', value: 16800 }
 ]
 
 const maxRevenue = Math.max(...revenueByDay.map(d => d.value))
 
 // Top selling items
 const topItems = [
-  { name: 'Classic Burger', orders: 156, revenue: '$1,872', growth: 12 },
-  { name: 'Margherita Pizza', orders: 134, revenue: '$2,142', growth: 8 },
-  { name: 'Cheese Burger', orders: 98, revenue: '$1,470', growth: -2 },
-  { name: 'Coca Cola', orders: 245, revenue: '$735', growth: 15 },
-  { name: 'Chocolate Cake', orders: 67, revenue: '$602', growth: 5 }
+  { name: 'Klasik Burger', orders: 156, revenue: '₺20.124', growth: 12 },
+  { name: 'Margherita Pizza', orders: 134, revenue: '₺22.763', growth: 8 },
+  { name: 'Cheeseburger', orders: 98, revenue: '₺14.700', growth: -2 },
+  { name: 'Coca Cola', orders: 245, revenue: '₺7.350', growth: 15 },
+  { name: 'Çikolatalı Pasta', orders: 67, revenue: '₺6.020', growth: 5 }
 ]
 
 // Performance metrics
 const performanceMetrics = [
-  { label: 'Order Completion Rate', value: 94, color: 'green' },
-  { label: 'Customer Satisfaction', value: 88, color: 'blue' },
-  { label: 'On-Time Delivery', value: 82, color: 'purple' },
-  { label: 'Repeat Customers', value: 45, color: 'orange' }
+  { label: 'Sipariş Tamamlama Oranı', value: 94, color: 'green' },
+  { label: 'Müşteri Memnuniyeti', value: 88, color: 'blue' },
+  { label: 'Zamanında Teslimat', value: 82, color: 'purple' },
+  { label: 'Tekrar Eden Müşteriler', value: 45, color: 'orange' }
 ]
 </script>
 
@@ -100,8 +100,8 @@ const performanceMetrics = [
           <!-- Page Header -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Analytics</h1>
-              <p class="text-sm sm:text-base text-gray-500 mt-1">Track your business performance</p>
+              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Analitik</h1>
+              <p class="text-sm sm:text-base text-gray-500 mt-1">İşletme performansınızı takip edin</p>
             </div>
 
             <!-- Period Selector -->
@@ -140,8 +140,8 @@ const performanceMetrics = [
             <!-- Revenue Chart -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
               <div class="flex items-center justify-between mb-6">
-                <h2 class="text-lg font-semibold text-gray-900">Revenue Overview</h2>
-                <span class="text-sm text-gray-500">This Week</span>
+                <h2 class="text-lg font-semibold text-gray-900">Gelir Özeti</h2>
+                <span class="text-sm text-gray-500">Bu Hafta</span>
               </div>
 
               <!-- Simple Bar Chart -->
@@ -158,7 +158,7 @@ const performanceMetrics = [
                     ></div>
                     <!-- Tooltip -->
                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      ${{ data.value.toLocaleString() }}
+                      ₺{{ data.value.toLocaleString() }}
                     </div>
                   </div>
                   <span class="text-xs text-gray-500">{{ data.day }}</span>
@@ -168,13 +168,13 @@ const performanceMetrics = [
 
             <!-- Performance Metrics -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-              <h2 class="text-lg font-semibold text-gray-900 mb-6">Performance Metrics</h2>
+              <h2 class="text-lg font-semibold text-gray-900 mb-6">Performans Metrikleri</h2>
 
               <div class="space-y-5">
                 <div v-for="metric in performanceMetrics" :key="metric.label">
                   <div class="flex items-center justify-between mb-2">
                     <span class="text-sm text-gray-600">{{ metric.label }}</span>
-                    <span class="text-sm font-semibold text-gray-900">{{ metric.value }}%</span>
+                    <span class="text-sm font-semibold text-gray-900">%{{ metric.value }}</span>
                   </div>
                   <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -196,7 +196,7 @@ const performanceMetrics = [
           <!-- Top Selling Items -->
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-4 sm:p-6 border-b border-gray-100">
-              <h2 class="text-lg font-semibold text-gray-900">Top Selling Items</h2>
+              <h2 class="text-lg font-semibold text-gray-900">En Çok Satan Ürünler</h2>
             </div>
 
             <!-- Table -->
@@ -204,10 +204,10 @@ const performanceMetrics = [
               <table class="w-full">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Growth</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ürün</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sipariş</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gelir</th>
+                    <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Artış</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -245,7 +245,7 @@ const performanceMetrics = [
                             d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"
                           />
                         </svg>
-                        {{ Math.abs(item.growth) }}%
+                        %{{ Math.abs(item.growth) }}
                       </span>
                     </td>
                   </tr>

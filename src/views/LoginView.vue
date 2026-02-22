@@ -22,11 +22,11 @@ const passwordError = ref('')
 function validateEmail() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!email.value) {
-    emailError.value = 'Email is required'
+    emailError.value = 'E-posta adresi gereklidir'
     return false
   }
   if (!emailRegex.test(email.value)) {
-    emailError.value = 'Please enter a valid email'
+    emailError.value = 'Geçerli bir e-posta adresi giriniz'
     return false
   }
   emailError.value = ''
@@ -35,11 +35,11 @@ function validateEmail() {
 
 function validatePassword() {
   if (!password.value) {
-    passwordError.value = 'Password is required'
+    passwordError.value = 'Şifre gereklidir'
     return false
   }
   if (password.value.length < 6) {
-    passwordError.value = 'Password must be at least 6 characters'
+    passwordError.value = 'Şifre en az 6 karakter olmalıdır'
     return false
   }
   passwordError.value = ''
@@ -92,8 +92,8 @@ onMounted(() => {
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Welcome Back</h1>
-          <p class="text-gray-500 mt-1 sm:mt-2 text-sm sm:text-base">Sign in to your Pako Business account</p>
+          <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Tekrar Hoş Geldiniz</h1>
+          <p class="text-gray-500 mt-1 sm:mt-2 text-sm sm:text-base">Pako Business hesabınıza giriş yapın</p>
         </div>
 
         <!-- Success Message (from registration) -->
@@ -134,7 +134,7 @@ onMounted(() => {
         <form @submit.prevent="handleLogin" class="space-y-4 sm:space-y-5">
           <!-- Email Field -->
           <div>
-            <label for="email" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Email Address</label>
+            <label for="email" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">E-posta Adresi</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
                 <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +145,7 @@ onMounted(() => {
                 id="email"
                 v-model="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="ornek@email.com"
                 class="w-full pl-10 sm:pl-12 pr-4 py-3 sm:py-3.5 text-sm sm:text-base bg-gray-50 border border-gray-200 rounded-lg sm:rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 :class="{ 'border-red-300 bg-red-50': emailError }"
                 @blur="validateEmail"
@@ -156,7 +156,7 @@ onMounted(() => {
 
           <!-- Password Field -->
           <div>
-            <label for="password" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Password</label>
+            <label for="password" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">Şifre</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
                 <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,10 +197,10 @@ onMounted(() => {
                 type="checkbox"
                 class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span class="ml-2 text-xs sm:text-sm text-gray-600">Remember me</span>
+              <span class="ml-2 text-xs sm:text-sm text-gray-600">Beni hatırla</span>
             </label>
             <a href="#" class="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
-              Forgot password?
+              Şifremi unuttum?
             </a>
           </div>
 
@@ -210,13 +210,13 @@ onMounted(() => {
             :disabled="authStore.isLoading"
             class="w-full py-3 sm:py-3.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[44px]"
           >
-            <span v-if="!authStore.isLoading">Sign In</span>
+            <span v-if="!authStore.isLoading">Giriş Yap</span>
             <span v-else class="flex items-center justify-center gap-2">
               <svg class="animate-spin w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Signing in...
+              Giriş yapılıyor...
             </span>
           </button>
         </form>
@@ -224,12 +224,12 @@ onMounted(() => {
         <!-- Register Link -->
         <div class="mt-6 sm:mt-8 text-center">
           <p class="text-gray-600 text-sm sm:text-base">
-            Don't have an account?
+            Hesabınız yok mu?
             <button
               @click="goToRegister"
               class="font-semibold text-blue-600 hover:text-blue-700 transition-colors ml-1"
             >
-              Sign up for free
+              Ücretsiz kayıt olun
             </button>
           </p>
         </div>
@@ -237,7 +237,7 @@ onMounted(() => {
 
       <!-- Footer -->
       <p class="text-center text-gray-400 text-xs sm:text-sm mt-4 sm:mt-6">
-        © 2026 Pako Business. All rights reserved.
+        © 2026 Pako Business. Tüm hakları saklıdır.
       </p>
     </div>
   </div>
