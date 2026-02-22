@@ -10,6 +10,8 @@ export const authService = {
    * @returns {Promise<Object>} Auth response with token and user
    */
   async login(credentials) {
+    console.log('Sending login request:', credentials)
+    console.log('To URL:', apiClient.defaults.baseURL + '/auth/login')
     const { data } = await apiClient.post('/auth/login', credentials)
     return data
   },
@@ -20,7 +22,10 @@ export const authService = {
    * @returns {Promise<Object>} Auth response with token and user
    */
   async register(userData) {
+    console.log('Sending register request:', userData)
+    console.log('To URL:', apiClient.defaults.baseURL + '/auth/register/business')
     const { data } = await apiClient.post('/auth/register/business', userData)
+    console.log('Register response:', data)
     return data
   },
 

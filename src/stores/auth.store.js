@@ -39,20 +39,34 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     } catch (err) {
       console.error('Login error:', err)
-      error.value = err.response?.data?.message || err.message || 'Login failed. Please try again.'
+      
+      // User-friendly error messages
+      if (err.response?.status === 401) {
+        error.value = 'Login failed. Your account may be pending approval or credentials are incorrect.'
+      } else if (err.response?.status === 404) {
+        error.value = 'User not found. Please register first.'
+      } else if (!err.response) {
+        error.value = 'Cannot connect to server. Please check if the server is running.'
+      } else {
+        error.value = err.response?.data?.message || err.message || 'Login failed. Please try again.'
+      }
       return false
     } finally {
       isLoading.value = false
     }
   }
 
+  // Store success message for displaying after redirect
+  const successMessage = ref(null)
+
   async function register(userData) {
     isLoading.value = true
     error.value = null
 
     try {
-      await authService.register(userData)
-      // Don't auto-login after registration, redirect to login page
+      const response = await authService.register(userData)
+      // Store the success message from backend
+      successMessage.value = response.message || 'Registration successful!'
       return true
     } catch (err) {
       error.value = err.response?.data?.message || 'Registration failed. Please try again.'
@@ -60,6 +74,10 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       isLoading.value = false
     }
+  }
+
+  function clearSuccessMessage() {
+    successMessage.value = null
   }
 
   function logout() {
@@ -96,6 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     isLoading,
     error,
+    successMessage,
     // Getters
     isAuthenticated,
     userName,
@@ -105,5 +124,6 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     initializeAuth,
     clearError,
+    clearSuccessMessage,
   }
 })
