@@ -85,6 +85,108 @@ const canEdit = computed(() => {
   return !['DELIVERED', 'CANCELLED'].includes(order.value.status)
 })
 
+// Status change loading state
+const isStatusChanging = ref(false)
+
+// Full status flow for visualization (all steps visible)
+const allStatusSteps = [
+  { id: 'PREPARING', label: 'Hazırlanıyor', icon: 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', canBusinessChange: true },
+  { id: 'READY', label: 'Hazır', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', canBusinessChange: true },
+  { id: 'IN_TRANSIT', label: 'Yolda', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0', canBusinessChange: false },
+  { id: 'DELIVERED', label: 'Teslim Edildi', icon: 'M5 13l4 4L19 7', canBusinessChange: false }
+]
+
+// Get current step index for full flow
+const currentStepIndex = computed(() => {
+  if (!order.value) return -1
+  const status = order.value.status
+  
+  // Map status to step index
+  if (status === 'PENDING' || status === 'ACCEPTED') return -1 // Before first step
+  if (status === 'PREPARING') return 0
+  if (status === 'READY' || status === 'COURIER_ASSIGNED' || status === 'PICKED_UP') return 1
+  if (status === 'IN_TRANSIT') return 2
+  if (status === 'DELIVERED') return 3
+  if (status === 'CANCELLED') return -2
+  
+  return -1
+})
+
+// Check if business can still change status (only PENDING, PREPARING, READY)
+const canBusinessChangeStatus = computed(() => {
+  if (!order.value) return false
+  const businessStatuses = ['PENDING', 'ACCEPTED', 'PREPARING', 'READY']
+  return businessStatuses.includes(order.value.status)
+})
+
+// Get next status (only within business control)
+const nextStatus = computed(() => {
+  if (!canBusinessChangeStatus.value) return null
+  
+  // If PENDING/ACCEPTED, next is PREPARING (index 0)
+  if (['PENDING', 'ACCEPTED'].includes(order.value.status)) {
+    return allStatusSteps[0]
+  }
+  
+  // If PREPARING, next is READY (index 1)
+  if (order.value.status === 'PREPARING') {
+    return allStatusSteps[1]
+  }
+  
+  // If READY, no next for business
+  return null
+})
+
+// Get previous status (only within business control)
+const previousStatus = computed(() => {
+  if (!canBusinessChangeStatus.value) return null
+  
+  // If READY, previous is PREPARING
+  if (order.value.status === 'READY') {
+    return allStatusSteps[0]
+  }
+  
+  // If PREPARING, no previous (can't go back to PENDING)
+  return null
+})
+
+// Change to specific status
+async function changeToStatus(targetStatus) {
+  if (isStatusChanging.value) return
+  
+  isStatusChanging.value = true
+  
+  try {
+    const result = await orderStore.updateOrderStatus(order.value.orderId, targetStatus)
+    
+    if (result.success) {
+      // Update local state immediately for UX
+      order.value.status = targetStatus
+      
+      // Also refresh the orders list to sync everything
+      await orderStore.fetchOrders()
+      
+      emit('updated', order.value)
+    } else {
+      alert(result.error || 'Durum güncellenemedi')
+    }
+  } finally {
+    isStatusChanging.value = false
+  }
+}
+
+// Change to next status
+async function advanceStatus() {
+  if (!nextStatus.value || isStatusChanging.value) return
+  await changeToStatus(nextStatus.value.id)
+}
+
+// Change to previous status
+async function revertStatus() {
+  if (!previousStatus.value || isStatusChanging.value) return
+  await changeToStatus(previousStatus.value.id)
+}
+
 // Methods
 async function fetchOrderDetail() {
   if (!props.orderId) return
@@ -197,21 +299,22 @@ watch(() => props.isOpen, (isOpen) => {
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <!-- Backdrop -->
+  <div>
+    <Teleport to="body">
+      <Transition name="modal">
         <div
-          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          @click="closeModal"
-        ></div>
+          v-if="isOpen"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          <!-- Backdrop -->
+          <div
+            class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            @click="closeModal"
+          ></div>
 
-        <!-- Modal Content -->
-        <div class="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-          <!-- Loading State -->
+          <!-- Modal Content -->
+          <div class="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <!-- Loading State -->
           <div v-if="isLoading" class="flex items-center justify-center py-20">
             <div class="flex flex-col items-center gap-4">
               <svg class="w-10 h-10 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -232,6 +335,7 @@ watch(() => props.isOpen, (isOpen) => {
                     <h2 class="text-lg sm:text-xl font-bold text-gray-900">
                       {{ isEditMode ? 'Siparişi Düzenle' : `#${order.orderNumber}` }}
                     </h2>
+                    <!-- Status Badge -->
                     <span
                       v-if="!isEditMode"
                       :class="['px-3 py-1 rounded-full text-xs font-medium', statusConfig[order.status]?.color]"
@@ -438,6 +542,149 @@ watch(() => props.isOpen, (isOpen) => {
 
               <!-- Details Tab (View Mode) -->
               <div v-else-if="activeTab === 'details'" class="space-y-6">
+                <!-- Status Timeline & Action -->
+                <div v-if="order.status !== 'CANCELLED'" class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-4">Sipariş Durumu</h3>
+                  
+                  <!-- Status Timeline - Full Flow -->
+                  <div class="flex items-center justify-between mb-4">
+                    <div
+                      v-for="(step, index) in allStatusSteps"
+                      :key="step.id"
+                      class="flex flex-col items-center flex-1"
+                    >
+                      <!-- Step Circle -->
+                      <button
+                        @click="step.canBusinessChange && canBusinessChangeStatus && index !== currentStepIndex && changeToStatus(step.id)"
+                        :disabled="!step.canBusinessChange || !canBusinessChangeStatus || index === currentStepIndex || isStatusChanging"
+                        :class="[
+                          'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                          index <= currentStepIndex && currentStepIndex >= 0 ? 'bg-green-500 text-white' :
+                          index === currentStepIndex ? 'bg-blue-500 text-white ring-4 ring-blue-200' :
+                          'bg-gray-200 text-gray-400',
+                          step.canBusinessChange && canBusinessChangeStatus && index !== currentStepIndex && !isStatusChanging ? 'cursor-pointer hover:ring-4 hover:ring-blue-300 hover:scale-110' : 'cursor-default'
+                        ]"
+                        :title="step.canBusinessChange && canBusinessChangeStatus && index !== currentStepIndex ? `${step.label} olarak değiştir` : (!step.canBusinessChange ? 'Kurye tarafından güncellenir' : '')"
+                      >
+                        <svg v-if="index < currentStepIndex && currentStepIndex >= 0" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="step.icon" />
+                        </svg>
+                      </button>
+                      <!-- Step Label -->
+                      <span
+                        :class="[
+                          'text-xs mt-2 text-center font-medium',
+                          index <= currentStepIndex && currentStepIndex >= 0 ? 'text-gray-900' : 'text-gray-400',
+                          !step.canBusinessChange ? 'italic' : ''
+                        ]"
+                      >
+                        {{ step.label }}
+                        <span v-if="!step.canBusinessChange" class="block text-[10px] text-gray-400">(Kurye)</span>
+                      </span>
+                      <!-- Connector Line -->
+                      <div
+                        v-if="index < allStatusSteps.length - 1"
+                        :class="[
+                          'absolute h-0.5 top-5',
+                          index < currentStepIndex && currentStepIndex >= 0 ? 'bg-green-500' : 'bg-gray-200'
+                        ]"
+                        :style="{ left: `${(100 / allStatusSteps.length) * (index + 0.5)}%`, width: `${100 / allStatusSteps.length}%` }"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <!-- Waiting/Pending Info -->
+                  <div v-if="['PENDING', 'ACCEPTED'].includes(order.status)" class="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div class="flex items-center gap-2 text-yellow-700">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span class="font-medium">Sipariş bekliyor - Hazırlanmaya başlayın</span>
+                    </div>
+                  </div>
+
+                  <!-- Courier Status Info (when order is with courier) -->
+                  <div v-else-if="['COURIER_ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(order.status)" class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-center gap-2 text-blue-700">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                      </svg>
+                      <span class="font-medium">Sipariş kuryede - durum kurye tarafından güncellenir</span>
+                    </div>
+                  </div>
+
+                  <!-- Status Action Buttons - Previous & Next -->
+                  <div v-if="canBusinessChangeStatus && (previousStatus || nextStatus)" class="pt-4 border-t border-white/50 flex gap-3">
+                    <!-- Previous Status Button -->
+                    <button
+                      v-if="previousStatus"
+                      @click="revertStatus"
+                      :disabled="isStatusChanging"
+                      class="flex-1 py-3 px-4 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                      </svg>
+                      <span class="hidden sm:inline">{{ previousStatus.label }}</span>
+                      <span class="sm:hidden">Geri</span>
+                    </button>
+
+                    <!-- Next Status Button -->
+                    <button
+                      v-if="nextStatus"
+                      @click="advanceStatus"
+                      :disabled="isStatusChanging"
+                      class="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <svg v-if="isStatusChanging" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span class="hidden sm:inline">{{ isStatusChanging ? 'Güncelleniyor...' : nextStatus.label }}</span>
+                      <span class="sm:hidden">{{ isStatusChanging ? '...' : 'İleri' }}</span>
+                      <svg v-if="!isStatusChanging" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- Cancel Order Button (when business can still control) -->
+                  <div v-if="canBusinessChangeStatus && order.status !== 'CANCELLED'" class="pt-3">
+                    <button
+                      @click="showCancelModal = true"
+                      class="w-full py-2.5 px-4 bg-red-50 border border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Siparişi İptal Et
+                    </button>
+                  </div>
+
+                  <!-- Completed State -->
+                  <div v-if="order.status === 'DELIVERED'" class="pt-4 border-t border-white/50 text-center">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Sipariş Tamamlandı
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cancelled State -->
+                <div v-else class="bg-red-50 rounded-xl p-4 text-center">
+                  <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <h3 class="text-lg font-semibold text-red-700 mb-1">Sipariş İptal Edildi</h3>
+                  <p class="text-sm text-red-600">Bu sipariş iptal edilmiştir</p>
+                </div>
                 <!-- Customer Info -->
                 <div class="bg-gray-50 rounded-xl p-4">
                   <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -687,8 +934,11 @@ watch(() => props.isOpen, (isOpen) => {
                   <button
                     v-if="canEdit"
                     @click="openCancelModal"
-                    class="px-4 py-3 text-red-600 font-medium bg-red-50 rounded-xl hover:bg-red-100 transition-colors min-h-[44px]"
+                    class="px-4 py-3 text-red-600 font-medium bg-red-50 rounded-xl hover:bg-red-100 transition-colors min-h-[44px] flex items-center gap-2"
                   >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     İptal Et
                   </button>
                 </div>
@@ -770,6 +1020,7 @@ watch(() => props.isOpen, (isOpen) => {
       </div>
     </Transition>
   </Teleport>
+  </div>
 </template>
 
 <style scoped>
@@ -791,5 +1042,17 @@ watch(() => props.isOpen, (isOpen) => {
 .modal-enter-from .relative,
 .modal-leave-to .relative {
   transform: scale(0.95);
+}
+
+/* Dropdown animation */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

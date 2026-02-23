@@ -9,8 +9,10 @@ import OrderCard from '@/components/dashboard/OrderCard.vue'
 import CreateOrderModal from '@/components/orders/CreateOrderModal.vue'
 import OrderDetailModal from '@/components/orders/OrderDetailModal.vue'
 import { useOrderStore } from '@/stores/order.store'
+import { useSessionStore } from '@/stores/session.store'
 
 const orderStore = useOrderStore()
+const sessionStore = useSessionStore()
 
 const isSidebarOpen = ref(false)
 const activeTab = ref('all')
@@ -46,8 +48,8 @@ function closeDetailModal() {
 }
 
 function handleStatusUpdated() {
-  // Refresh orders after status update
-  orderStore.fetchOrders()
+  // Orders already refreshed in modal, just show success message
+  sessionStore.showSuccess('Sipariş durumu güncellendi!')
 }
 
 async function handleOrderCreated() {
@@ -282,7 +284,7 @@ onMounted(async () => {
       :is-open="isDetailModalOpen"
       :order-id="selectedOrderId"
       @close="closeDetailModal"
-      @status-updated="handleStatusUpdated"
+      @updated="handleStatusUpdated"
     />
   </div>
 </template>

@@ -94,7 +94,9 @@ export const useOrderStore = defineStore('order', () => {
     error.value = null
 
     try {
+      console.log('Updating order status:', { orderId, status })
       const response = await orderService.updateOrderStatus(orderId, status)
+      console.log('Update status response:', response)
       // Update in local list - use orderId from API
       const index = orders.value.findIndex(o => o.orderId === orderId)
       if (index !== -1) {
@@ -103,6 +105,8 @@ export const useOrderStore = defineStore('order', () => {
       return { success: true, data: response.data }
     } catch (err) {
       console.error('Update order status error:', err)
+      console.error('Error response:', err.response?.data)
+      console.error('Error status:', err.response?.status)
       error.value = err.response?.data?.message || 'Failed to update order status'
       return { success: false, error: error.value }
     } finally {

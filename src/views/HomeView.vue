@@ -169,7 +169,7 @@ function handleViewOrder(order) {
 }
 
 function handleStatusUpdated() {
-  orderStore.fetchOrders()
+  // Orders already refreshed in modal, just show success message
   sessionStore.showSuccess('Sipariş durumu güncellendi!')
 }
 
@@ -342,7 +342,7 @@ function goToAllOrders() {
       :is-open="isDetailModalOpen"
       :order-id="selectedOrderId"
       @close="closeDetailModal"
-      @status-updated="handleStatusUpdated"
+      @updated="handleStatusUpdated"
     />
   </div>
 </template>

@@ -41,7 +41,8 @@ export const orderService = {
    * @returns {Promise<Object>} Updated order
    */
   async updateOrderStatus(orderId, status) {
-    const { data } = await apiClient.patch(`/business/orders/${orderId}/status`, { status })
+    // Use the general update endpoint with status field
+    const { data } = await apiClient.put(`/business/orders/${orderId}`, { status })
     return data
   },
 

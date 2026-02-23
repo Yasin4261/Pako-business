@@ -1,7 +1,8 @@
 // API Client Configuration - Model Layer
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8081/api/v1'
+// Use relative URL to leverage Vite proxy (bypasses CORS)
+const API_BASE_URL = '/api/v1'
 
 // Single Responsibility: Only handles HTTP client creation and configuration
 export const apiClient = axios.create({
