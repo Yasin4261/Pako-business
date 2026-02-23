@@ -4,6 +4,7 @@
 
 import { ref, watch, computed } from 'vue'
 import { useOrderStore } from '@/stores/order.store'
+import { formatPhoneDisplay } from '@/composables/usePhoneFormat'
 
 const props = defineProps({
   isOpen: {
@@ -16,24 +17,32 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'status-updated'])
+const emit = defineEmits(['close', 'updated'])
 
 const orderStore = useOrderStore()
 const order = ref(null)
 const isLoading = ref(false)
 const activeTab = ref('details')
 
+// Edit mode state
+const isEditMode = ref(false)
+const editForm = ref({})
+
+// Cancel modal state
+const showCancelModal = ref(false)
+const cancelReason = ref('')
+
 // Status config
 const statusConfig = {
-  PENDING: { label: 'Bekleyen', color: 'bg-yellow-100 text-yellow-700', next: 'ACCEPTED' },
-  ACCEPTED: { label: 'Kabul Edildi', color: 'bg-blue-100 text-blue-700', next: 'PREPARING' },
-  PREPARING: { label: 'Hazırlanıyor', color: 'bg-blue-100 text-blue-700', next: 'READY' },
-  READY: { label: 'Hazır', color: 'bg-purple-100 text-purple-700', next: 'COURIER_ASSIGNED' },
-  COURIER_ASSIGNED: { label: 'Kurye Atandı', color: 'bg-indigo-100 text-indigo-700', next: 'PICKED_UP' },
-  PICKED_UP: { label: 'Alındı', color: 'bg-indigo-100 text-indigo-700', next: 'IN_TRANSIT' },
-  IN_TRANSIT: { label: 'Yolda', color: 'bg-orange-100 text-orange-700', next: 'DELIVERED' },
-  DELIVERED: { label: 'Teslim Edildi', color: 'bg-green-100 text-green-700', next: null },
-  CANCELLED: { label: 'İptal Edildi', color: 'bg-red-100 text-red-700', next: null }
+  PENDING: { label: 'Bekleyen', color: 'bg-yellow-100 text-yellow-700' },
+  ACCEPTED: { label: 'Kabul Edildi', color: 'bg-blue-100 text-blue-700' },
+  PREPARING: { label: 'Hazırlanıyor', color: 'bg-blue-100 text-blue-700' },
+  READY: { label: 'Hazır', color: 'bg-purple-100 text-purple-700' },
+  COURIER_ASSIGNED: { label: 'Kurye Atandı', color: 'bg-indigo-100 text-indigo-700' },
+  PICKED_UP: { label: 'Alındı', color: 'bg-indigo-100 text-indigo-700' },
+  IN_TRANSIT: { label: 'Yolda', color: 'bg-orange-100 text-orange-700' },
+  DELIVERED: { label: 'Teslim Edildi', color: 'bg-green-100 text-green-700' },
+  CANCELLED: { label: 'İptal Edildi', color: 'bg-red-100 text-red-700' }
 }
 
 const priorityConfig = {
@@ -56,18 +65,24 @@ const tabs = [
   { id: 'courier', label: 'Kurye' }
 ]
 
-// Computed
-const canUpdateStatus = computed(() => {
-  if (!order.value) return false
-  const currentStatus = statusConfig[order.value.status]
-  return currentStatus && currentStatus.next
-})
+// Priority options for edit mode
+const priorityOptions = [
+  { id: 'NORMAL', label: 'Normal' },
+  { id: 'HIGH', label: 'Yüksek' },
+  { id: 'URGENT', label: 'Acil' }
+]
 
-const nextStatusLabel = computed(() => {
-  if (!order.value) return ''
-  const currentStatus = statusConfig[order.value.status]
-  if (!currentStatus || !currentStatus.next) return ''
-  return statusConfig[currentStatus.next]?.label || ''
+// Payment type options for edit mode
+const paymentOptions = [
+  { id: 'CASH', label: 'Nakit' },
+  { id: 'CREDIT_CARD', label: 'Kredi Kartı' },
+  { id: 'ONLINE', label: 'Online Ödeme' }
+]
+
+// Computed - can edit only if not delivered or cancelled
+const canEdit = computed(() => {
+  if (!order.value) return false
+  return !['DELIVERED', 'CANCELLED'].includes(order.value.status)
 })
 
 // Methods
@@ -85,15 +100,63 @@ async function fetchOrderDetail() {
   }
 }
 
-async function updateStatus() {
-  if (!order.value || !canUpdateStatus.value) return
-  
-  const nextStatus = statusConfig[order.value.status].next
-  const result = await orderStore.updateOrderStatus(order.value.orderId, nextStatus)
+// Enter edit mode
+function enterEditMode() {
+  editForm.value = {
+    endCustomerName: order.value.endCustomerName,
+    endCustomerPhone: order.value.endCustomerPhone,
+    pickupAddress: order.value.pickupAddress,
+    pickupAddressDescription: order.value.pickupAddressDescription || '',
+    deliveryAddress: order.value.deliveryAddress,
+    deliveryAddressDescription: order.value.deliveryAddressDescription || '',
+    packageDescription: order.value.packageDescription || '',
+    packageWeight: order.value.packageWeight,
+    packageCount: order.value.packageCount,
+    priority: order.value.priority,
+    paymentType: order.value.paymentType,
+    deliveryFee: order.value.deliveryFee,
+    collectionAmount: order.value.collectionAmount || 0,
+    businessNotes: order.value.businessNotes || ''
+  }
+  isEditMode.value = true
+}
+
+// Cancel edit mode
+function cancelEditMode() {
+  isEditMode.value = false
+  editForm.value = {}
+}
+
+// Save edited order
+async function saveOrder() {
+  const result = await orderStore.updateOrder(order.value.orderId, editForm.value)
   
   if (result.success) {
-    order.value.status = nextStatus
-    emit('status-updated', order.value)
+    // Update local order data
+    order.value = { ...order.value, ...editForm.value }
+    isEditMode.value = false
+    emit('updated', order.value)
+  } else {
+    alert(result.error || 'Sipariş güncellenemedi')
+  }
+}
+
+// Open cancel modal
+function openCancelModal() {
+  cancelReason.value = ''
+  showCancelModal.value = true
+}
+
+// Cancel order
+async function confirmCancelOrder() {
+  const result = await orderStore.cancelOrder(order.value.orderId, cancelReason.value)
+  
+  if (result.success) {
+    order.value.status = 'CANCELLED'
+    showCancelModal.value = false
+    emit('updated', order.value)
+  } else {
+    alert(result.error || 'Sipariş iptal edilemedi')
   }
 }
 
@@ -111,6 +174,8 @@ function formatDate(dateString) {
 function closeModal() {
   order.value = null
   activeTab.value = 'details'
+  isEditMode.value = false
+  showCancelModal.value = false
   emit('close')
 }
 
@@ -164,8 +229,11 @@ watch(() => props.isOpen, (isOpen) => {
               <div class="flex items-start justify-between">
                 <div>
                   <div class="flex items-center gap-3 mb-2">
-                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">#{{ order.orderNumber }}</h2>
+                    <h2 class="text-lg sm:text-xl font-bold text-gray-900">
+                      {{ isEditMode ? 'Siparişi Düzenle' : `#${order.orderNumber}` }}
+                    </h2>
                     <span
+                      v-if="!isEditMode"
                       :class="['px-3 py-1 rounded-full text-xs font-medium', statusConfig[order.status]?.color]"
                     >
                       {{ statusConfig[order.status]?.label }}
@@ -173,18 +241,32 @@ watch(() => props.isOpen, (isOpen) => {
                   </div>
                   <p class="text-sm text-gray-500">{{ formatDate(order.createdAt) }}</p>
                 </div>
-                <button
-                  @click="closeModal"
-                  class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div class="flex items-center gap-2">
+                  <!-- Edit Button -->
+                  <button
+                    v-if="canEdit && !isEditMode"
+                    @click="enterEditMode"
+                    class="p-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Düzenle"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <!-- Close Button -->
+                  <button
+                    @click="closeModal"
+                    class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              <!-- Tabs -->
-              <div class="flex gap-2 mt-4">
+              <!-- Tabs - Hide in edit mode -->
+              <div v-if="!isEditMode" class="flex gap-2 mt-4">
                 <button
                   v-for="tab in tabs"
                   :key="tab.id"
@@ -203,8 +285,159 @@ watch(() => props.isOpen, (isOpen) => {
 
             <!-- Body -->
             <div class="flex-1 overflow-y-auto p-4 sm:p-6">
-              <!-- Details Tab -->
-              <div v-if="activeTab === 'details'" class="space-y-6">
+              <!-- Edit Mode Form -->
+              <div v-if="isEditMode" class="space-y-6">
+                <!-- Customer Info Edit -->
+                <div class="bg-blue-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Müşteri Bilgileri
+                  </h3>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Ad Soyad *</label>
+                      <input
+                        v-model="editForm.endCustomerName"
+                        type="text"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Telefon *</label>
+                      <input
+                        v-model="editForm.endCustomerPhone"
+                        type="tel"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Addresses Edit -->
+                <div class="bg-gray-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-4">Adres Bilgileri</h3>
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Alış Adresi *</label>
+                      <textarea
+                        v-model="editForm.pickupAddress"
+                        rows="2"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Alış Adresi Tarifi</label>
+                      <input
+                        v-model="editForm.pickupAddressDescription"
+                        type="text"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Teslimat Adresi *</label>
+                      <textarea
+                        v-model="editForm.deliveryAddress"
+                        rows="2"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Teslimat Adresi Tarifi</label>
+                      <input
+                        v-model="editForm.deliveryAddressDescription"
+                        type="text"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Order Details Edit -->
+                <div class="bg-gray-50 rounded-xl p-4">
+                  <h3 class="text-sm font-semibold text-gray-900 mb-4">Sipariş Detayları</h3>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Öncelik</label>
+                      <select
+                        v-model="editForm.priority"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      >
+                        <option v-for="opt in priorityOptions" :key="opt.id" :value="opt.id">
+                          {{ opt.label }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Ödeme Tipi</label>
+                      <select
+                        v-model="editForm.paymentType"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      >
+                        <option v-for="opt in paymentOptions" :key="opt.id" :value="opt.id">
+                          {{ opt.label }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Paket Sayısı</label>
+                      <input
+                        v-model.number="editForm.packageCount"
+                        type="number"
+                        min="1"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Paket Ağırlığı (kg)</label>
+                      <input
+                        v-model.number="editForm.packageWeight"
+                        type="number"
+                        step="0.1"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Teslimat Ücreti (₺)</label>
+                      <input
+                        v-model.number="editForm.deliveryFee"
+                        type="number"
+                        step="0.01"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-600 mb-1">Tahsilat (₺)</label>
+                      <input
+                        v-model.number="editForm.collectionAmount"
+                        type="number"
+                        step="0.01"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <label class="block text-xs text-gray-600 mb-1">Paket Açıklaması</label>
+                    <input
+                      v-model="editForm.packageDescription"
+                      type="text"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                  </div>
+                  <div class="mt-4">
+                    <label class="block text-xs text-gray-600 mb-1">İşletme Notları</label>
+                    <textarea
+                      v-model="editForm.businessNotes"
+                      rows="2"
+                      class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Details Tab (View Mode) -->
+              <div v-else-if="activeTab === 'details'" class="space-y-6">
                 <!-- Customer Info -->
                 <div class="bg-gray-50 rounded-xl p-4">
                   <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -221,7 +454,7 @@ watch(() => props.isOpen, (isOpen) => {
                     <div>
                       <p class="text-xs text-gray-500 mb-1">Telefon</p>
                       <a :href="`tel:${order.endCustomerPhone}`" class="font-medium text-blue-600 hover:underline">
-                        {{ order.endCustomerPhone }}
+                        {{ formatPhoneDisplay(order.endCustomerPhone) }}
                       </a>
                     </div>
                   </div>
@@ -359,7 +592,7 @@ watch(() => props.isOpen, (isOpen) => {
                     <div>
                       <p class="text-xs text-gray-500 mb-1">İşletme Telefon</p>
                       <a :href="`tel:${order.businessPhone}`" class="font-medium text-blue-600 hover:underline">
-                        {{ order.businessPhone }}
+                        {{ formatPhoneDisplay(order.businessPhone) }}
                       </a>
                     </div>
                     <div v-if="order.businessContactPerson">
@@ -388,7 +621,7 @@ watch(() => props.isOpen, (isOpen) => {
                     <div class="flex-1">
                       <p class="font-semibold text-gray-900">{{ order.courierName }}</p>
                       <a :href="`tel:${order.courierPhone}`" class="text-sm text-blue-600 hover:underline">
-                        {{ order.courierPhone }}
+                        {{ formatPhoneDisplay(order.courierPhone) }}
                       </a>
                     </div>
                     <a
@@ -420,33 +653,46 @@ watch(() => props.isOpen, (isOpen) => {
 
             <!-- Footer -->
             <div class="p-4 sm:p-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3 sm:justify-between">
-              <button
-                @click="closeModal"
-                class="px-4 py-3 text-gray-700 font-medium bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors min-h-[44px]"
-              >
-                Kapat
-              </button>
-
-              <div class="flex gap-3">
+              <!-- Edit Mode Footer -->
+              <template v-if="isEditMode">
                 <button
-                  v-if="order.status !== 'CANCELLED' && order.status !== 'DELIVERED'"
-                  class="px-4 py-3 text-red-600 font-medium bg-red-50 rounded-xl hover:bg-red-100 transition-colors min-h-[44px]"
+                  @click="cancelEditMode"
+                  class="px-4 py-3 text-gray-700 font-medium bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors min-h-[44px]"
                 >
-                  İptal Et
+                  Vazgeç
                 </button>
                 <button
-                  v-if="canUpdateStatus"
-                  @click="updateStatus"
+                  @click="saveOrder"
                   :disabled="orderStore.isLoading"
-                  class="px-4 py-3 text-white font-medium bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50 min-h-[44px] flex items-center gap-2"
+                  class="px-6 py-3 text-white font-medium bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50 min-h-[44px] flex items-center justify-center gap-2"
                 >
                   <svg v-if="orderStore.isLoading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>{{ nextStatusLabel }} Olarak İşaretle</span>
+                  <span>{{ orderStore.isLoading ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet' }}</span>
                 </button>
-              </div>
+              </template>
+
+              <!-- View Mode Footer -->
+              <template v-else>
+                <button
+                  @click="closeModal"
+                  class="px-4 py-3 text-gray-700 font-medium bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors min-h-[44px]"
+                >
+                  Kapat
+                </button>
+
+                <div class="flex gap-3">
+                  <button
+                    v-if="canEdit"
+                    @click="openCancelModal"
+                    class="px-4 py-3 text-red-600 font-medium bg-red-50 rounded-xl hover:bg-red-100 transition-colors min-h-[44px]"
+                  >
+                    İptal Et
+                  </button>
+                </div>
+              </template>
             </div>
           </template>
 
@@ -465,6 +711,60 @@ watch(() => props.isOpen, (isOpen) => {
             >
               Kapat
             </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Cancel Order Modal -->
+    <Transition name="modal">
+      <div
+        v-if="showCancelModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      >
+        <div
+          class="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          @click="showCancelModal = false"
+        ></div>
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div class="p-6">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Siparişi İptal Et</h3>
+            <p class="text-gray-500 text-center text-sm mb-4">
+              Bu işlem geri alınamaz. Siparişi iptal etmek istediğinizden emin misiniz?
+            </p>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">İptal Sebebi (Opsiyonel)</label>
+              <textarea
+                v-model="cancelReason"
+                rows="2"
+                placeholder="Örn: Müşteri vazgeçti"
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
+              ></textarea>
+            </div>
+            <div class="flex gap-3">
+              <button
+                @click="showCancelModal = false"
+                class="flex-1 px-4 py-3 text-gray-700 font-medium bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Vazgeç
+              </button>
+              <button
+                @click="confirmCancelOrder"
+                :disabled="orderStore.isLoading"
+                class="flex-1 px-4 py-3 text-white font-medium bg-red-500 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <svg v-if="orderStore.isLoading" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ orderStore.isLoading ? 'İptal Ediliyor...' : 'İptal Et' }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

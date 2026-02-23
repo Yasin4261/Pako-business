@@ -2,6 +2,8 @@
 // OrderCard - Individual Order Card Component
 // Single Responsibility: Display single order information from API
 
+import { formatPhoneDisplay } from '@/composables/usePhoneFormat'
+
 defineProps({
   order: {
     type: Object,
@@ -122,7 +124,7 @@ function formatDate(dateString) {
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-sm font-medium text-gray-900 truncate">{{ order.endCustomerName }}</p>
-        <p class="text-xs text-gray-500 truncate">{{ order.endCustomerPhone }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ formatPhoneDisplay(order.endCustomerPhone) }}</p>
       </div>
     </div>
 
@@ -162,7 +164,7 @@ function formatDate(dateString) {
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-xs font-medium text-indigo-900 truncate">{{ order.courierName }}</p>
-          <p class="text-xs text-indigo-600">{{ order.courierPhone }}</p>
+          <p class="text-xs text-indigo-600">{{ formatPhoneDisplay(order.courierPhone) }}</p>
         </div>
       </div>
     </div>

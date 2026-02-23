@@ -4,6 +4,7 @@
 
 import { ref, computed, watch } from 'vue'
 import { useOrderStore } from '@/stores/order.store'
+import { formatPhoneDisplay } from '@/composables/usePhoneFormat'
 
 const props = defineProps({
   isOpen: {
@@ -572,7 +573,7 @@ watch(() => props.isOpen, (isOpen) => {
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Telefon:</span>
-                    <span class="font-medium text-gray-900">{{ orderInfo.endCustomerPhone }}</span>
+                    <span class="font-medium text-gray-900">{{ formatPhoneDisplay(orderInfo.endCustomerPhone) }}</span>
                   </div>
                   <div class="flex justify-between">
                     <span class="text-gray-600">Öncelik:</span>

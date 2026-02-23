@@ -46,13 +46,27 @@ export const orderService = {
   },
 
   /**
+   * Update order details
+   * @param {string} orderId - Order ID
+   * @param {Object} orderData - Updated order data
+   * @returns {Promise<Object>} Updated order
+   */
+  async updateOrder(orderId, orderData) {
+    const { data } = await apiClient.put(`/business/orders/${orderId}`, orderData)
+    return data
+  },
+
+  /**
    * Cancel order
    * @param {string} orderId - Order ID
-   * @param {string} reason - Cancellation reason
+   * @param {string} reason - Cancellation reason (optional)
    * @returns {Promise<Object>} Cancelled order
    */
-  async cancelOrder(orderId, reason) {
-    const { data } = await apiClient.post(`/business/orders/${orderId}/cancel`, { reason })
+  async cancelOrder(orderId, reason = '') {
+    const url = reason 
+      ? `/business/orders/${orderId}/cancel?reason=${encodeURIComponent(reason)}`
+      : `/business/orders/${orderId}/cancel`
+    const { data } = await apiClient.post(url)
     return data
   }
 }

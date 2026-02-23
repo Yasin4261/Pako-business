@@ -110,7 +110,28 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  async function cancelOrder(orderId, reason) {
+  async function updateOrder(orderId, orderData) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await orderService.updateOrder(orderId, orderData)
+      // Update in local list
+      const index = orders.value.findIndex(o => o.orderId === orderId)
+      if (index !== -1) {
+        orders.value[index] = { ...orders.value[index], ...response.data }
+      }
+      return { success: true, data: response.data }
+    } catch (err) {
+      console.error('Update order error:', err)
+      error.value = err.response?.data?.message || 'Sipariş güncellenemedi'
+      return { success: false, error: error.value }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function cancelOrder(orderId, reason = '') {
     isLoading.value = true
     error.value = null
 
@@ -151,6 +172,7 @@ export const useOrderStore = defineStore('order', () => {
     fetchOrders,
     fetchOrderById,
     updateOrderStatus,
+    updateOrder,
     cancelOrder,
     clearError
   }
