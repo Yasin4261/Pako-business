@@ -46,17 +46,6 @@ export const orderService = {
   },
 
   /**
-   * Assign courier to order
-   * @param {string} orderId - Order ID
-   * @param {string} courierId - Courier ID
-   * @returns {Promise<Object>} Updated order
-   */
-  async assignCourier(orderId, courierId) {
-    const { data } = await apiClient.post(`/business/orders/${orderId}/assign`, { courierId })
-    return data
-  },
-
-  /**
    * Cancel order
    * @param {string} orderId - Order ID
    * @param {string} reason - Cancellation reason

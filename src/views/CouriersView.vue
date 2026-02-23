@@ -167,17 +167,9 @@ function handleCall(courier) {
       <main class="flex-1 p-4 sm:p-6 lg:p-8">
         <div class="max-w-7xl mx-auto">
           <!-- Page Header -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-            <div>
-              <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Kuryeler</h1>
-              <p class="text-sm sm:text-base text-gray-500 mt-1">Teslimat ekibinizi yönetin</p>
-            </div>
-            <button class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all min-h-[44px]">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              <span>Kurye Ekle</span>
-            </button>
+          <div class="mb-6 sm:mb-8">
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Kuryeler</h1>
+            <p class="text-sm sm:text-base text-gray-500 mt-1">Teslimat ekibinizi yönetin</p>
           </div>
 
           <!-- Search & Filters -->

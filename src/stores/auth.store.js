@@ -4,6 +4,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import authService from '@/services/auth.service.js'
+import { resetSessionExpiredFlag } from '@/services/api.client.js'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -25,30 +26,41 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.login(credentials)
       console.log('Login response:', response)
       
-      // Handle different API response formats
-      const authToken = response.token || response.accessToken || response.data?.token
-      const userData = response.user || response.data?.user || { email: credentials.email }
+      // Backend returns: { code: 200, data: { token, userId, email, name, userType, status }, message }
+      const authToken = response.data?.token || response.token
+      const userData = response.data ? {
+        userId: response.data.userId,
+        email: response.data.email,
+        name: response.data.name,
+        userType: response.data.userType,
+        status: response.data.status
+      } : { email: credentials.email }
       
       if (!authToken) {
+        console.error('No token found in response:', response)
         throw new Error('No token received from server')
       }
       
       token.value = authToken
       user.value = userData
       authService.setAuthData(authToken, userData)
+      
+      // Reset session expired flag after successful login
+      resetSessionExpiredFlag()
+      
       return true
     } catch (err) {
       console.error('Login error:', err)
       
-      // User-friendly error messages
+      // User-friendly error messages in Turkish
       if (err.response?.status === 401) {
-        error.value = 'Login failed. Your account may be pending approval or credentials are incorrect.'
+        error.value = 'Giriş başarısız. Hesabınız onay bekliyor olabilir veya bilgileriniz hatalı.'
       } else if (err.response?.status === 404) {
-        error.value = 'User not found. Please register first.'
+        error.value = 'Kullanıcı bulunamadı. Lütfen önce kayıt olun.'
       } else if (!err.response) {
-        error.value = 'Cannot connect to server. Please check if the server is running.'
+        error.value = 'Sunucuya bağlanılamıyor. Lütfen sunucunun çalıştığından emin olun.'
       } else {
-        error.value = err.response?.data?.message || err.message || 'Login failed. Please try again.'
+        error.value = err.response?.data?.message || err.message || 'Giriş başarısız. Lütfen tekrar deneyin.'
       }
       return false
     } finally {
@@ -66,10 +78,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.register(userData)
       // Store the success message from backend
-      successMessage.value = response.message || 'Registration successful!'
+      successMessage.value = response.message || 'Kayıt başarılı!'
       return true
     } catch (err) {
-      error.value = err.response?.data?.message || 'Registration failed. Please try again.'
+      error.value = err.response?.data?.message || 'Kayıt başarısız. Lütfen tekrar deneyin.'
       return false
     } finally {
       isLoading.value = false

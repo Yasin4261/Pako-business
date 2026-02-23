@@ -2,17 +2,31 @@
 // HomeView - Dashboard Page
 // Single Responsibility: Only dashboard UI composition
 
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import OrderCard from '@/components/dashboard/OrderCard.vue'
-import QuickActionButton from '@/components/dashboard/QuickActionButton.vue'
 import ActivityItem from '@/components/dashboard/ActivityItem.vue'
 import CreateOrderModal from '@/components/orders/CreateOrderModal.vue'
+import OrderDetailModal from '@/components/orders/OrderDetailModal.vue'
+import { useOrderStore } from '@/stores/order.store.js'
+import { useSessionStore } from '@/stores/session.store.js'
+
+const router = useRouter()
+const orderStore = useOrderStore()
+const sessionStore = useSessionStore()
 
 const isSidebarOpen = ref(false)
 const isCreateOrderModalOpen = ref(false)
+const isDetailModalOpen = ref(false)
+const selectedOrderId = ref(null)
+
+// Fetch orders on mount
+onMounted(async () => {
+  await orderStore.fetchOrders()
+})
 
 function toggleSidebar() {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -23,148 +37,144 @@ function closeSidebar() {
 }
 
 function handleOrderCreated(order) {
-  console.log('Order created:', order)
+  sessionStore.showSuccess('Sipariş başarıyla oluşturuldu!')
+  orderStore.fetchOrders() // Refresh orders
 }
 
-// Demo data - In real app, this comes from store
-const stats = [
-  {
-    title: 'Aktif Siparişler',
-    value: 12,
-    icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-    trend: 12,
-    color: 'blue'
-  },
-  {
-    title: 'Bugünün Geliri',
-    value: '₺8.450',
-    icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    trend: 8,
-    color: 'green'
-  },
-  {
-    title: 'Uygun Kuryeler',
-    value: 5,
-    icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z',
-    trend: -2,
-    color: 'purple'
-  },
-  {
-    title: 'Bugün Tamamlanan',
-    value: 34,
-    icon: 'M5 13l4 4L19 7',
-    trend: 15,
-    color: 'orange'
-  }
-]
+// Computed: Active orders (not delivered or cancelled)
+const activeOrders = computed(() => {
+  return orderStore.orders.filter(order => 
+    !['DELIVERED', 'CANCELLED'].includes(order.status)
+  ).slice(0, 5) // Show max 5 on dashboard
+})
 
-const activeOrders = [
-  {
-    id: '1042',
-    customer: 'Ahmet Yılmaz',
-    address: 'Atatürk Mah. 123. Sok. No:4',
-    items: ['2x Burger', '1x Patates', '1x Kola'],
-    total: 285.50,
-    status: 'preparing',
-    time: '5 dk önce'
-  },
-  {
-    id: '1041',
-    customer: 'Ayşe Demir',
-    address: 'Cumhuriyet Cad. No:456',
-    items: ['1x Pizza Büyük', '2x Salata'],
-    total: 420.00,
-    status: 'ready',
-    time: '12 dk önce'
-  },
-  {
-    id: '1040',
-    customer: 'Mehmet Kaya',
-    address: 'Gül Sok. No:789, Kat:3',
-    items: ['3x Taco', '1x Nachos', '2x İçecek'],
-    total: 357.75,
-    status: 'in-transit',
-    time: '18 dk önce'
-  },
-  {
-    id: '1039',
-    customer: 'Fatma Öztürk',
-    address: 'Çınar Mah. No:321',
-    items: ['1x Makarna', '1x Ekmek'],
-    total: 220.00,
-    status: 'pending',
-    time: '2 dk önce'
-  }
-]
+// Computed: Stats from real data
+const stats = computed(() => {
+  const orders = orderStore.orders
+  const activeCount = orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)).length
+  const deliveredToday = orders.filter(o => {
+    if (o.status !== 'DELIVERED') return false
+    const today = new Date().toDateString()
+    const orderDate = new Date(o.deliveredAt || o.updatedAt).toDateString()
+    return today === orderDate
+  }).length
+  
+  const todayRevenue = orders
+    .filter(o => o.status === 'DELIVERED')
+    .reduce((sum, o) => sum + (o.deliveryFee || 0), 0)
 
-const quickActions = [
-  {
-    title: 'Yeni Sipariş',
-    description: 'Manuel sipariş oluştur',
-    icon: 'M12 4v16m8-8H4',
-    color: 'blue'
-  },
-  {
-    title: 'Kurye Ata',
-    description: '3 sipariş bekliyor',
-    icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z',
-    color: 'purple'
-  },
-  {
-    title: 'Raporları Gör',
-    description: 'Günlük analitik',
-    icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
-    color: 'green'
-  }
-]
+  return [
+    {
+      title: 'Aktif Siparişler',
+      value: activeCount,
+      icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+      trend: 0,
+      color: 'blue'
+    },
+    {
+      title: 'Bugünün Geliri',
+      value: `₺${todayRevenue.toFixed(2)}`,
+      icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+      trend: 0,
+      color: 'green'
+    },
+    {
+      title: 'Bekleyen Sipariş',
+      value: orders.filter(o => o.status === 'PENDING').length,
+      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+      trend: 0,
+      color: 'purple'
+    },
+    {
+      title: 'Bugün Tamamlanan',
+      value: deliveredToday,
+      icon: 'M5 13l4 4L19 7',
+      trend: 0,
+      color: 'orange'
+    }
+  ]
+})
 
-const recentActivities = [
-  {
-    type: 'delivery',
-    message: 'Sipariş #1038 başarıyla teslim edildi',
-    time: '2 dakika önce'
-  },
-  {
-    type: 'order',
-    message: 'Ahmet Yılmaz\'dan yeni sipariş #1042 alındı',
-    time: '5 dakika önce'
-  },
-  {
-    type: 'courier',
-    message: 'Kurye Ali sipariş #1040\'a atandı',
-    time: '10 dakika önce'
-  },
-  {
-    type: 'payment',
-    message: 'Sipariş #1037 için ödeme alındı',
-    time: '15 dakika önce'
-  },
-  {
-    type: 'order',
-    message: 'Sipariş #1041 teslimata hazır olarak işaretlendi',
-    time: '18 dakika önce'
-  }
-]
+// Generate activities from orders
+const recentActivities = computed(() => {
+  const activities = []
+  const orders = [...orderStore.orders].sort((a, b) => 
+    new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+  ).slice(0, 10)
+
+  orders.forEach(order => {
+    const time = formatActivityTime(order.updatedAt || order.createdAt)
+    
+    if (order.status === 'DELIVERED') {
+      activities.push({
+        type: 'delivery',
+        message: `Sipariş #${order.orderNumber} başarıyla teslim edildi`,
+        time
+      })
+    } else if (order.status === 'PENDING') {
+      activities.push({
+        type: 'order',
+        message: `${order.endCustomerName}'dan yeni sipariş #${order.orderNumber} alındı`,
+        time
+      })
+    } else if (order.status === 'COURIER_ASSIGNED' && order.courierName) {
+      activities.push({
+        type: 'courier',
+        message: `Kurye ${order.courierName} sipariş #${order.orderNumber}'a atandı`,
+        time
+      })
+    } else if (order.status === 'IN_TRANSIT') {
+      activities.push({
+        type: 'delivery',
+        message: `Sipariş #${order.orderNumber} yolda`,
+        time
+      })
+    } else if (order.status === 'READY') {
+      activities.push({
+        type: 'order',
+        message: `Sipariş #${order.orderNumber} teslimata hazır`,
+        time
+      })
+    }
+  })
+
+  return activities.slice(0, 5)
+})
+
+function formatActivityTime(dateString) {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000 / 60) // minutes
+
+  if (diff < 1) return 'Az önce'
+  if (diff < 60) return `${diff} dakika önce`
+  if (diff < 1440) return `${Math.floor(diff / 60)} saat önce`
+  return date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
+}
 
 // Event handlers
+function openDetailModal(orderId) {
+  selectedOrderId.value = orderId
+  isDetailModalOpen.value = true
+}
+
+function closeDetailModal() {
+  isDetailModalOpen.value = false
+  selectedOrderId.value = null
+}
+
 function handleViewOrder(order) {
-  console.log('View order:', order)
+  openDetailModal(order.orderId)
 }
 
-function handleAssignOrder(order) {
-  console.log('Assign order:', order)
+function handleStatusUpdated() {
+  orderStore.fetchOrders()
+  sessionStore.showSuccess('Sipariş durumu güncellendi!')
 }
 
-function handleCompleteOrder(order) {
-  console.log('Complete order:', order)
-}
-
-function handleQuickAction(action) {
-  if (action.title === 'Yeni Sipariş') {
-    isCreateOrderModalOpen.value = true
-  } else {
-    console.log('Quick action:', action)
-  }
+function goToAllOrders() {
+  router.push('/orders')
 }
 </script>
 
@@ -199,22 +209,6 @@ function handleQuickAction(action) {
             />
           </div>
 
-          <!-- Quick Actions (Mobile: horizontal scroll, Desktop: grid) -->
-          <div class="mb-6 sm:mb-8">
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Hızlı İşlemler</h2>
-            <div class="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
-              <div v-for="action in quickActions" :key="action.title" class="min-w-[200px] sm:min-w-0">
-                <QuickActionButton
-                  :title="action.title"
-                  :description="action.description"
-                  :icon="action.icon"
-                  :color="action.color"
-                  @click="handleQuickAction(action)"
-                />
-              </div>
-            </div>
-          </div>
-
           <!-- Main Grid: Orders & Activity -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             <!-- Active Orders - 2 columns on desktop -->
@@ -226,21 +220,66 @@ function handleQuickAction(action) {
                       <h2 class="text-lg sm:text-xl font-semibold text-gray-900">Aktif Siparişler</h2>
                       <p class="text-sm text-gray-500 mt-0.5">{{ activeOrders.length }} sipariş işlemde</p>
                     </div>
-                    <button class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                    <button 
+                      @click="goToAllOrders"
+                      class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                    >
                       Tümünü Gör
                     </button>
                   </div>
                 </div>
 
+                <!-- Loading State -->
+                <div v-if="orderStore.isLoading" class="p-8 flex items-center justify-center">
+                  <div class="flex flex-col items-center gap-3">
+                    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="text-sm text-gray-500">Siparişler yükleniyor...</p>
+                  </div>
+                </div>
+
+                <!-- Error State -->
+                <div v-else-if="orderStore.error" class="p-8">
+                  <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p class="text-gray-600 mb-4">{{ orderStore.error }}</p>
+                    <button 
+                      @click="orderStore.fetchOrders()"
+                      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Tekrar Dene
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else-if="activeOrders.length === 0" class="p-8">
+                  <div class="text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <p class="text-gray-600 mb-4">Aktif sipariş bulunmuyor</p>
+                    <button 
+                      @click="isCreateOrderModalOpen = true"
+                      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Yeni Sipariş Oluştur
+                    </button>
+                  </div>
+                </div>
+
                 <!-- Orders List -->
-                <div class="p-4 sm:p-6 space-y-4 max-h-[600px] overflow-y-auto">
+                <div v-else class="p-4 sm:p-6 space-y-4 max-h-[600px] overflow-y-auto">
                   <OrderCard
                     v-for="order in activeOrders"
-                    :key="order.id"
+                    :key="order.orderId"
                     :order="order"
-                    @view="handleViewOrder"
-                    @assign="handleAssignOrder"
-                    @complete="handleCompleteOrder"
+                    @view-details="handleViewOrder"
                   />
                 </div>
               </div>
@@ -257,7 +296,7 @@ function handleQuickAction(action) {
                 </div>
 
                 <!-- Activity List -->
-                <div class="divide-y divide-gray-50 max-h-[500px] overflow-y-auto">
+                <div v-if="recentActivities.length > 0" class="divide-y divide-gray-50 max-h-[500px] overflow-y-auto">
                   <ActivityItem
                     v-for="(activity, index) in recentActivities"
                     :key="index"
@@ -265,9 +304,22 @@ function handleQuickAction(action) {
                   />
                 </div>
 
+                <!-- Empty State -->
+                <div v-else class="p-8 text-center">
+                  <div class="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-sm text-gray-500">Henüz aktivite yok</p>
+                </div>
+
                 <!-- View All -->
                 <div class="p-4 border-t border-gray-100">
-                  <button class="w-full py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <button 
+                    @click="goToAllOrders"
+                    class="w-full py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
                     Tüm Aktiviteleri Gör
                   </button>
                 </div>
@@ -283,6 +335,14 @@ function handleQuickAction(action) {
       :is-open="isCreateOrderModalOpen"
       @close="isCreateOrderModalOpen = false"
       @created="handleOrderCreated"
+    />
+
+    <!-- Order Detail Modal -->
+    <OrderDetailModal
+      :is-open="isDetailModalOpen"
+      :order-id="selectedOrderId"
+      @close="closeDetailModal"
+      @status-updated="handleStatusUpdated"
     />
   </div>
 </template>

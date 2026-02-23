@@ -17,12 +17,12 @@ export const useOrderStore = defineStore('order', () => {
     total: 0
   })
 
-  // Getters
-  const pendingOrders = computed(() => orders.value.filter(o => o.status === 'pending'))
+  // Getters - Status values are UPPERCASE from API
+  const pendingOrders = computed(() => orders.value.filter(o => o.status === 'PENDING'))
   const activeOrders = computed(() => orders.value.filter(o => 
-    ['pending', 'preparing', 'ready', 'in-transit'].includes(o.status)
+    ['PENDING', 'ACCEPTED', 'PREPARING', 'READY', 'COURIER_ASSIGNED', 'PICKED_UP', 'IN_TRANSIT'].includes(o.status)
   ))
-  const completedOrders = computed(() => orders.value.filter(o => o.status === 'delivered'))
+  const completedOrders = computed(() => orders.value.filter(o => o.status === 'DELIVERED'))
 
   // Actions
   async function createOrder(orderData) {
@@ -88,8 +88,8 @@ export const useOrderStore = defineStore('order', () => {
 
     try {
       const response = await orderService.updateOrderStatus(orderId, status)
-      // Update in local list
-      const index = orders.value.findIndex(o => o.id === orderId)
+      // Update in local list - use orderId from API
+      const index = orders.value.findIndex(o => o.orderId === orderId)
       if (index !== -1) {
         orders.value[index] = { ...orders.value[index], status }
       }
@@ -103,32 +103,16 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  async function assignCourier(orderId, courierId) {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const response = await orderService.assignCourier(orderId, courierId)
-      return { success: true, data: response.data }
-    } catch (err) {
-      console.error('Assign courier error:', err)
-      error.value = err.response?.data?.message || 'Failed to assign courier'
-      return { success: false, error: error.value }
-    } finally {
-      isLoading.value = false
-    }
-  }
-
   async function cancelOrder(orderId, reason) {
     isLoading.value = true
     error.value = null
 
     try {
       const response = await orderService.cancelOrder(orderId, reason)
-      // Update in local list
-      const index = orders.value.findIndex(o => o.id === orderId)
+      // Update in local list - use orderId from API, status is UPPERCASE
+      const index = orders.value.findIndex(o => o.orderId === orderId)
       if (index !== -1) {
-        orders.value[index] = { ...orders.value[index], status: 'cancelled' }
+        orders.value[index] = { ...orders.value[index], status: 'CANCELLED' }
       }
       return { success: true, data: response.data }
     } catch (err) {
@@ -160,7 +144,6 @@ export const useOrderStore = defineStore('order', () => {
     fetchOrders,
     fetchOrderById,
     updateOrderStatus,
-    assignCourier,
     cancelOrder,
     clearError
   }

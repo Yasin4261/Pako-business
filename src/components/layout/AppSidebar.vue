@@ -2,6 +2,7 @@
 // AppSidebar Component - Single Responsibility: Only sidebar navigation
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useOrderStore } from '@/stores/order.store.js'
 
 const props = defineProps({
   isOpen: {
@@ -13,8 +14,16 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const route = useRoute()
+const orderStore = useOrderStore()
 
-const menuItems = [
+// Computed: Count of pending/active orders for badge
+const pendingOrdersCount = computed(() => {
+  return orderStore.orders.filter(o => 
+    !['DELIVERED', 'CANCELLED'].includes(o.status)
+  ).length
+})
+
+const menuItems = computed(() => [
   { 
     name: 'Ana Sayfa', 
     path: '/', 
@@ -24,7 +33,7 @@ const menuItems = [
     name: 'Siparişler', 
     path: '/orders', 
     icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
-    badge: 5
+    badge: pendingOrdersCount.value > 0 ? pendingOrdersCount.value : null
   },
   { 
     name: 'Kuryeler', 
@@ -46,7 +55,7 @@ const menuItems = [
     path: '/settings', 
     icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z'
   }
-]
+])
 
 function isActive(path) {
   return route.path === path

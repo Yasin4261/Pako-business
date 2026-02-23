@@ -2,16 +2,22 @@
 // OrdersView - Orders Management Page
 // Single Responsibility: Orders listing and management UI
 
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import OrderCard from '@/components/dashboard/OrderCard.vue'
 import CreateOrderModal from '@/components/orders/CreateOrderModal.vue'
+import OrderDetailModal from '@/components/orders/OrderDetailModal.vue'
+import { useOrderStore } from '@/stores/order.store'
+
+const orderStore = useOrderStore()
 
 const isSidebarOpen = ref(false)
 const activeTab = ref('all')
 const searchQuery = ref('')
 const isCreateModalOpen = ref(false)
+const isDetailModalOpen = ref(false)
+const selectedOrderId = ref(null)
 
 function toggleSidebar() {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -29,93 +35,73 @@ function closeCreateModal() {
   isCreateModalOpen.value = false
 }
 
-function handleOrderCreated(order) {
-  console.log('Order created:', order)
-  // Add to local list or refresh from API
+function openDetailModal(orderId) {
+  selectedOrderId.value = orderId
+  isDetailModalOpen.value = true
 }
 
-const tabs = [
-  { id: 'all', label: 'Tüm Siparişler', count: 24 },
-  { id: 'pending', label: 'Bekleyen', count: 5 },
-  { id: 'preparing', label: 'Hazırlanıyor', count: 8 },
-  { id: 'ready', label: 'Hazır', count: 3 },
-  { id: 'in-transit', label: 'Yolda', count: 6 },
-  { id: 'delivered', label: 'Teslim Edildi', count: 2 }
-]
+function closeDetailModal() {
+  isDetailModalOpen.value = false
+  selectedOrderId.value = null
+}
 
-// Demo orders data - will be replaced with API data
-const allOrders = ref([
-  {
-    id: '1042',
-    customer: 'Ahmet Yılmaz',
-    address: 'Atatürk Mah. 123. Sok. No:4',
-    items: ['2x Burger', '1x Patates', '1x Kola'],
-    total: 285.50,
-    status: 'preparing',
-    time: '5 dk önce'
-  },
-  {
-    id: '1041',
-    customer: 'Ayşe Demir',
-    address: 'Cumhuriyet Cad. No:456',
-    items: ['1x Pizza Büyük', '2x Salata'],
-    total: 420.00,
-    status: 'ready',
-    time: '12 dk önce'
-  },
-  {
-    id: '1040',
-    customer: 'Mehmet Kaya',
-    address: 'Gül Sok. No:789, Kat:3',
-    items: ['3x Taco', '1x Nachos', '2x İçecek'],
-    total: 357.75,
-    status: 'in-transit',
-    time: '18 dk önce'
-  },
-  {
-    id: '1039',
-    customer: 'Fatma Öztürk',
-    address: 'Çınar Mah. No:321',
-    items: ['1x Makarna', '1x Ekmek'],
-    total: 220.00,
-    status: 'pending',
-    time: '2 dk önce'
-  },
-  {
-    id: '1038',
-    customer: 'Ali Çelik',
-    address: 'Selvi Sok. No:555',
-    items: ['2x Sushi Roll', '1x Miso Çorbası'],
-    total: 380.00,
-    status: 'delivered',
-    time: '25 dk önce'
-  },
-  {
-    id: '1037',
-    customer: 'Zeynep Arslan',
-    address: 'Akasya Cad. No:777',
-    items: ['1x Biftek', '1x Şarap'],
-    total: 650.00,
-    status: 'pending',
-    time: '1 dk önce'
+function handleStatusUpdated() {
+  // Refresh orders after status update
+  orderStore.fetchOrders()
+}
+
+async function handleOrderCreated() {
+  // Refresh orders from API
+  await orderStore.fetchOrders()
+}
+
+// Tab counts computed from actual orders
+const tabCounts = computed(() => {
+  const orders = orderStore.orders
+  return {
+    all: orders.length,
+    PENDING: orders.filter(o => o.status === 'PENDING').length,
+    ACCEPTED: orders.filter(o => o.status === 'ACCEPTED').length,
+    PREPARING: orders.filter(o => o.status === 'PREPARING').length,
+    READY: orders.filter(o => o.status === 'READY').length,
+    IN_TRANSIT: orders.filter(o => ['IN_TRANSIT', 'PICKED_UP', 'COURIER_ASSIGNED'].includes(o.status)).length,
+    DELIVERED: orders.filter(o => o.status === 'DELIVERED').length
   }
+})
+
+const tabs = computed(() => [
+  { id: 'all', label: 'Tüm Siparişler', count: tabCounts.value.all },
+  { id: 'PENDING', label: 'Bekleyen', count: tabCounts.value.PENDING },
+  { id: 'PREPARING', label: 'Hazırlanıyor', count: tabCounts.value.PREPARING },
+  { id: 'READY', label: 'Hazır', count: tabCounts.value.READY },
+  { id: 'IN_TRANSIT', label: 'Yolda', count: tabCounts.value.IN_TRANSIT },
+  { id: 'DELIVERED', label: 'Teslim Edildi', count: tabCounts.value.DELIVERED }
 ])
 
 const filteredOrders = computed(() => {
-  let orders = allOrders.value
+  let orders = orderStore.orders
 
   // Filter by tab
   if (activeTab.value !== 'all') {
-    orders = orders.filter(order => order.status === activeTab.value)
+    if (activeTab.value === 'IN_TRANSIT') {
+      // Include multiple statuses for "Yolda" tab
+      orders = orders.filter(order => 
+        ['IN_TRANSIT', 'PICKED_UP', 'COURIER_ASSIGNED'].includes(order.status)
+      )
+    } else {
+      orders = orders.filter(order => order.status === activeTab.value)
+    }
   }
 
   // Filter by search
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     orders = orders.filter(order =>
-      order.id.includes(query) ||
-      order.customer.toLowerCase().includes(query) ||
-      order.address.toLowerCase().includes(query)
+      order.orderNumber?.toLowerCase().includes(query) ||
+      order.endCustomerName?.toLowerCase().includes(query) ||
+      order.endCustomerPhone?.includes(query) ||
+      order.deliveryAddress?.toLowerCase().includes(query) ||
+      order.pickupAddress?.toLowerCase().includes(query)
     )
   }
 
@@ -124,16 +110,13 @@ const filteredOrders = computed(() => {
 
 // Event handlers
 function handleViewOrder(order) {
-  console.log('View order:', order)
+  openDetailModal(order.orderId)
 }
 
-function handleAssignOrder(order) {
-  console.log('Assign order:', order)
-}
-
-function handleCompleteOrder(order) {
-  console.log('Complete order:', order)
-}
+// Fetch orders on mount
+onMounted(async () => {
+  await orderStore.fetchOrders()
+})
 </script>
 
 <template>
@@ -173,17 +156,26 @@ function handleCompleteOrder(order) {
                 <input
                   v-model="searchQuery"
                   type="text"
-                  placeholder="Sipariş ID, müşteri veya adres ile ara..."
+                  placeholder="Sipariş no, müşteri, telefon veya adres ile ara..."
                   class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm sm:text-base"
                 />
               </div>
               
-              <!-- Filter Button -->
-              <button class="inline-flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-600 min-h-[44px]">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              <!-- Refresh Button -->
+              <button
+                @click="orderStore.fetchOrders()"
+                :disabled="orderStore.isLoading"
+                class="inline-flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-gray-600 min-h-[44px] disabled:opacity-50"
+              >
+                <svg
+                  :class="['w-5 h-5', orderStore.isLoading && 'animate-spin']"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span class="hidden sm:inline">Filtreler</span>
+                <span class="hidden sm:inline">Yenile</span>
               </button>
             </div>
 
@@ -215,15 +207,41 @@ function handleCompleteOrder(order) {
             </div>
           </div>
 
+          <!-- Loading State -->
+          <div v-if="orderStore.isLoading && orderStore.orders.length === 0" class="flex justify-center py-12">
+            <div class="flex flex-col items-center gap-4">
+              <svg class="w-10 h-10 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p class="text-gray-500">Siparişler yükleniyor...</p>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div v-else-if="orderStore.error" class="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-red-800 mb-2">Hata Oluştu</h3>
+            <p class="text-red-600 mb-4">{{ orderStore.error }}</p>
+            <button
+              @click="orderStore.fetchOrders()"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+
           <!-- Orders Grid -->
-          <div v-if="filteredOrders.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          <div v-else-if="filteredOrders.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             <OrderCard
               v-for="order in filteredOrders"
-              :key="order.id"
+              :key="order.orderId"
               :order="order"
-              @view="handleViewOrder"
-              @assign="handleAssignOrder"
-              @complete="handleCompleteOrder"
+              @view-details="handleViewOrder"
             />
           </div>
 
@@ -235,7 +253,18 @@ function handleCompleteOrder(order) {
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Sipariş bulunamadı</h3>
-            <p class="text-gray-500 text-sm sm:text-base">Arama veya filtre kriterlerinizi değiştirmeyi deneyin</p>
+            <p class="text-gray-500 text-sm sm:text-base mb-4">
+              {{ searchQuery ? 'Arama kriterlerinizi değiştirmeyi deneyin' : 'Henüz sipariş bulunmuyor' }}
+            </p>
+            <button
+              @click="openCreateModal"
+              class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-shadow"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Yeni Sipariş Oluştur
+            </button>
           </div>
         </div>
       </main>
@@ -246,6 +275,14 @@ function handleCompleteOrder(order) {
       :is-open="isCreateModalOpen"
       @close="closeCreateModal"
       @created="handleOrderCreated"
+    />
+
+    <!-- Order Detail Modal -->
+    <OrderDetailModal
+      :is-open="isDetailModalOpen"
+      :order-id="selectedOrderId"
+      @close="closeDetailModal"
+      @status-updated="handleStatusUpdated"
     />
   </div>
 </template>
