@@ -44,31 +44,60 @@ const orderInfo = ref({
 // Show/hide optional fields
 const showOptionalFields = ref(false)
 
-// Priority options
+// Priority options - Must match backend OrderPriority enum [NORMAL, HIGH, URGENT]
 const priorityOptions = [
-  { id: 'LOW', label: 'Düşük', color: 'text-gray-600 bg-gray-100' },
   { id: 'NORMAL', label: 'Normal', color: 'text-blue-600 bg-blue-100' },
   { id: 'HIGH', label: 'Yüksek', color: 'text-orange-600 bg-orange-100' },
   { id: 'URGENT', label: 'Acil', color: 'text-red-600 bg-red-100' }
 ]
 
-// Payment type options
+// Payment type options - Must match backend PaymentType enum
 const paymentTypes = [
   { id: 'CASH', label: 'Nakit', icon: '💵' },
-  { id: 'CARD', label: 'Kredi Kartı', icon: '💳' },
-  { id: 'ONLINE', label: 'Online Ödeme', icon: '📱' },
-  { id: 'PREPAID', label: 'Ön Ödemeli', icon: '✅' }
+  { id: 'CREDIT_CARD', label: 'Kredi Kartı', icon: '💳' },
+  { id: 'ONLINE', label: 'Online Ödeme', icon: '📱' }
 ]
+
+// Phone number without +90 prefix (user only enters 10 digits)
+const phoneNumber = ref('')
+
+// Phone validation - must be exactly 10 digits starting with 5
+const isPhoneValid = computed(() => {
+  const phone = phoneNumber.value
+  if (!phone) return false
+  // Must be 10 digits and start with 5 (Turkish mobile)
+  return /^5[0-9]{9}$/.test(phone)
+})
+
+// Format phone as user types - only allow digits
+function formatPhone(event) {
+  // Only allow digits
+  let value = event.target.value.replace(/[^0-9]/g, '')
+  
+  // Remove leading 0 if present
+  if (value.startsWith('0')) {
+    value = value.substring(1)
+  }
+  
+  // Limit to 10 digits
+  if (value.length > 10) {
+    value = value.substring(0, 10)
+  }
+  
+  phoneNumber.value = value
+  // Update the full phone with +90 prefix for API
+  orderInfo.value.endCustomerPhone = value ? `+90${value}` : ''
+}
 
 // Computed
 const isStepValid = computed(() => {
   if (currentStep.value === 1) {
-    return (
-      orderInfo.value.pickupAddress &&
-      orderInfo.value.deliveryAddress &&
-      orderInfo.value.endCustomerName &&
-      orderInfo.value.endCustomerPhone
-    )
+    const hasName = orderInfo.value.endCustomerName?.trim().length > 0
+    const hasValidPhone = isPhoneValid.value
+    const hasPickupAddress = orderInfo.value.pickupAddress?.trim().length >= 10
+    const hasDeliveryAddress = orderInfo.value.deliveryAddress?.trim().length >= 10
+    
+    return hasName && hasValidPhone && hasPickupAddress && hasDeliveryAddress
   }
   return orderInfo.value.deliveryFee > 0
 })
@@ -88,11 +117,14 @@ function prevStep() {
 
 async function createOrder() {
   // Build order data - only include non-empty optional fields
+  // Clean phone number (remove spaces)
+  const cleanPhone = orderInfo.value.endCustomerPhone.replace(/\s/g, '')
+  
   const orderData = {
-    pickupAddress: orderInfo.value.pickupAddress,
-    deliveryAddress: orderInfo.value.deliveryAddress,
-    endCustomerName: orderInfo.value.endCustomerName,
-    endCustomerPhone: orderInfo.value.endCustomerPhone,
+    pickupAddress: orderInfo.value.pickupAddress.trim(),
+    deliveryAddress: orderInfo.value.deliveryAddress.trim(),
+    endCustomerName: orderInfo.value.endCustomerName.trim(),
+    endCustomerPhone: cleanPhone,
     priority: orderInfo.value.priority,
     paymentType: orderInfo.value.paymentType,
     deliveryFee: parseFloat(orderInfo.value.deliveryFee)
@@ -141,6 +173,7 @@ function closeModal() {
 function resetForm() {
   currentStep.value = 1
   showOptionalFields.value = false
+  phoneNumber.value = '' // Reset phone number
   orderInfo.value = {
     pickupAddress: '',
     deliveryAddress: '',
@@ -231,18 +264,62 @@ watch(() => props.isOpen, (isOpen) => {
                       v-model="orderInfo.endCustomerName"
                       type="text"
                       placeholder="Ad Soyad"
-                      class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      :class="[
+                        'w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all',
+                        orderInfo.endCustomerName && orderInfo.endCustomerName.trim().length < 2
+                          ? 'border-red-300 focus:border-red-500'
+                          : 'border-gray-200 focus:border-blue-500'
+                      ]"
                     />
+                    <p v-if="orderInfo.endCustomerName && orderInfo.endCustomerName.trim().length < 2" class="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                      En az 2 karakter giriniz
+                    </p>
+                    <p v-else-if="orderInfo.endCustomerName && orderInfo.endCustomerName.trim().length >= 2" class="text-xs text-green-500 mt-1.5 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      Geçerli
+                    </p>
                   </div>
 
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Telefon *</label>
-                    <input
-                      v-model="orderInfo.endCustomerPhone"
-                      type="tel"
-                      placeholder="+90 5XX XXX XX XX"
-                      class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    />
+                    <div class="relative flex">
+                      <!-- Fixed +90 Prefix -->
+                      <div class="flex items-center px-4 py-3 bg-gray-100 border border-r-0 border-gray-200 rounded-l-xl">
+                        <span class="text-gray-600 font-medium">+90</span>
+                      </div>
+                      <!-- Phone Input -->
+                      <input
+                        :value="phoneNumber"
+                        @input="formatPhone"
+                        type="tel"
+                        inputmode="numeric"
+                        placeholder="5XX XXX XX XX"
+                        maxlength="10"
+                        :class="[
+                          'flex-1 px-4 py-3 border rounded-r-xl focus:ring-2 focus:ring-blue-500/20 transition-all',
+                          phoneNumber && !isPhoneValid 
+                            ? 'border-red-300 focus:border-red-500' 
+                            : 'border-gray-200 focus:border-blue-500'
+                        ]"
+                      />
+                    </div>
+                    <p v-if="phoneNumber && !isPhoneValid" class="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                      5 ile başlayan 10 haneli numara giriniz
+                    </p>
+                    <p v-else-if="phoneNumber && isPhoneValid" class="text-xs text-green-500 mt-1.5 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      Geçerli numara
+                    </p>
                   </div>
                 </div>
               </div>
@@ -259,9 +336,26 @@ watch(() => props.isOpen, (isOpen) => {
                   <textarea
                     v-model="orderInfo.pickupAddress"
                     rows="2"
-                    placeholder="Paket alınacak adres"
-                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                    placeholder="Paket alınacak adres (en az 10 karakter)"
+                    :class="[
+                      'w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all resize-none',
+                      orderInfo.pickupAddress && orderInfo.pickupAddress.length < 10
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-blue-500'
+                    ]"
                   ></textarea>
+                  <p v-if="orderInfo.pickupAddress && orderInfo.pickupAddress.length < 10" class="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    En az 10 karakter gerekli ({{ orderInfo.pickupAddress?.length || 0 }}/10)
+                  </p>
+                  <p v-else-if="orderInfo.pickupAddress && orderInfo.pickupAddress.length >= 10" class="text-xs text-green-500 mt-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    Geçerli adres
+                  </p>
                 </div>
               </div>
 
@@ -277,9 +371,26 @@ watch(() => props.isOpen, (isOpen) => {
                   <textarea
                     v-model="orderInfo.deliveryAddress"
                     rows="2"
-                    placeholder="Paket teslim edilecek adres"
-                    class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                    placeholder="Paket teslim edilecek adres (en az 10 karakter)"
+                    :class="[
+                      'w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all resize-none',
+                      orderInfo.deliveryAddress && orderInfo.deliveryAddress.length < 10
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-blue-500'
+                    ]"
                   ></textarea>
+                  <p v-if="orderInfo.deliveryAddress && orderInfo.deliveryAddress.length < 10" class="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    En az 10 karakter gerekli ({{ orderInfo.deliveryAddress?.length || 0 }}/10)
+                  </p>
+                  <p v-else-if="orderInfo.deliveryAddress && orderInfo.deliveryAddress.length >= 10" class="text-xs text-green-500 mt-1.5 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    Geçerli adres
+                  </p>
                 </div>
               </div>
 

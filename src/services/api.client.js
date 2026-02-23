@@ -16,9 +16,17 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
-    if (token) {
+    
+    // Skip auth header for login and register endpoints
+    const isAuthEndpoint = config.url?.includes('/auth/login') || config.url?.includes('/auth/register')
+    
+    if (token && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('Request with token:', config.method?.toUpperCase(), config.url)
+    } else if (!isAuthEndpoint) {
+      console.warn('No token found for request:', config.method?.toUpperCase(), config.url)
     }
+    
     return config
   },
   (error) => Promise.reject(error)

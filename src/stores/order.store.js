@@ -30,7 +30,9 @@ export const useOrderStore = defineStore('order', () => {
     error.value = null
 
     try {
+      console.log('Creating order with data:', JSON.stringify(orderData, null, 2))
       const response = await orderService.createOrder(orderData)
+      console.log('Create order response:', response)
       // Add new order to list
       if (response.data) {
         orders.value.unshift(response.data)
@@ -38,7 +40,12 @@ export const useOrderStore = defineStore('order', () => {
       return { success: true, data: response.data }
     } catch (err) {
       console.error('Create order error:', err)
-      error.value = err.response?.data?.message || 'Failed to create order'
+      console.error('Error response data:', err.response?.data)
+      // Log validation errors in detail
+      if (err.response?.data?.validationErrors?.length > 0) {
+        console.error('Validation errors:', err.response.data.validationErrors)
+      }
+      error.value = err.response?.data?.message || 'Sipariş oluşturulamadı'
       return { success: false, error: error.value }
     } finally {
       isLoading.value = false
